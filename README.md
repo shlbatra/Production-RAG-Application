@@ -89,30 +89,31 @@ docker compose up --build
 
 ### Google Cloud Run
 
-Deploys automatically on push to `main` via GitHub Actions.
+Deployed manually via GitHub Actions workflow dispatch (Actions → Deploy to Cloud Run → Run workflow).
 
-**GCP prerequisites (one-time setup):**
+**One-time GCP setup:**
 
-1. Create an Artifact Registry Docker repo:
-   ```bash
-   gcloud artifacts repositories create prod-rag \
-     --repository-format=docker \
-     --location=us-central1
-   ```
+The setup script provisions all required GCP resources (Artifact Registry, Secret Manager, Workload Identity Federation, IAM). It is idempotent and safe to run multiple times.
 
-2. Create secrets in Secret Manager:
-   ```bash
-   echo -n 'sk-your-key' | gcloud secrets create OPENAI_API_KEY --data-file=-
-   echo -n 'lsv2_your-key' | gcloud secrets create LANGCHAIN_API_KEY --data-file=-
-   ```
+```bash
+# Required env vars
+export GCP_PROJECT_ID=your-project-id
+export GITHUB_REPO=owner/repo       # e.g. shlbatra/prod_rag
+export GCP_REGION=us-central1       # optional, defaults to us-central1
 
-3. Set up [Workload Identity Federation](https://github.com/google-github-actions/auth#workload-identity-federation-through-a-service-account) for GitHub Actions.
+# Run setup with default service name (prod-rag-api)
+bash scripts/setup-cloud-run.sh
 
-4. Grant the WIF service account these roles:
-   - `roles/run.admin`
-   - `roles/iam.serviceAccountUser`
-   - `roles/artifactregistry.writer`
-   - `roles/secretmanager.secretAccessor`
+# Or specify a custom service name
+bash scripts/setup-cloud-run.sh my-custom-api
+```
+
+After the script completes, it prints the GitHub secrets and variables to configure. Set your real API keys:
+
+```bash
+echo -n 'sk-your-key' | gcloud secrets versions add OPENAI_API_KEY --data-file=- --project=$GCP_PROJECT_ID
+echo -n 'lsv2_your-key' | gcloud secrets versions add LANGCHAIN_API_KEY --data-file=- --project=$GCP_PROJECT_ID
+```
 
 **GitHub repository configuration:**
 
@@ -120,8 +121,17 @@ Deploys automatically on push to `main` via GitHub Actions.
 |---|---|---|
 | `GCP_PROJECT_ID` | Variable | Your GCP project ID |
 | `GCP_REGION` | Variable | e.g. `us-central1` |
-| `GCP_WIF_PROVIDER` | Secret | Workload Identity provider resource name |
-| `GCP_WIF_SERVICE_ACCOUNT` | Secret | WIF service account email |
+| `GCP_WIF_PROVIDER` | Secret | Workload Identity provider resource name (printed by setup script) |
+| `GCP_WIF_SERVICE_ACCOUNT` | Secret | WIF service account email (printed by setup script) |
+
+**Service accounts:**
+
+Two service accounts are used, each with a distinct role:
+
+| Service Account | Purpose | Roles |
+|---|---|---|
+| `github-actions-deployer@<project>.iam.gserviceaccount.com` | **Deploy-time** — GitHub Actions impersonates this via Workload Identity Federation to build, push, and deploy | `run.admin`, `iam.serviceAccountUser`, `artifactregistry.writer`, `secretmanager.secretAccessor` |
+| `<project-number>-compute@developer.gserviceaccount.com` | **Run-time** — Cloud Run's default compute SA, used by the running container to read secrets | `secretmanager.secretAccessor` |
 
 ### Environment Variables
 
