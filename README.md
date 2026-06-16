@@ -55,6 +55,7 @@ app/
 | Health Checks | `main.py` `/health` | Docker/Kubernetes readiness endpoint |
 | Docker Deployment | `Dockerfile` + `docker-compose.yml` | Non-root user, health check, layer caching |
 | Render Deployment | `render.yml` | Infrastructure as Code with secret separation |
+| Cloud Run Deployment | GitHub Actions + Cloud Run | Artifact Registry, Secret Manager, Workload Identity Federation |
 
 ## Setup
 
@@ -85,6 +86,42 @@ uv run uvicorn app.main:app --reload --port 8000
 ```bash
 docker compose up --build
 ```
+
+### Google Cloud Run
+
+Deploys automatically on push to `main` via GitHub Actions.
+
+**GCP prerequisites (one-time setup):**
+
+1. Create an Artifact Registry Docker repo:
+   ```bash
+   gcloud artifacts repositories create prod-rag \
+     --repository-format=docker \
+     --location=us-central1
+   ```
+
+2. Create secrets in Secret Manager:
+   ```bash
+   echo -n 'sk-your-key' | gcloud secrets create OPENAI_API_KEY --data-file=-
+   echo -n 'lsv2_your-key' | gcloud secrets create LANGCHAIN_API_KEY --data-file=-
+   ```
+
+3. Set up [Workload Identity Federation](https://github.com/google-github-actions/auth#workload-identity-federation-through-a-service-account) for GitHub Actions.
+
+4. Grant the WIF service account these roles:
+   - `roles/run.admin`
+   - `roles/iam.serviceAccountUser`
+   - `roles/artifactregistry.writer`
+   - `roles/secretmanager.secretAccessor`
+
+**GitHub repository configuration:**
+
+| Name | Type | Value |
+|---|---|---|
+| `GCP_PROJECT_ID` | Variable | Your GCP project ID |
+| `GCP_REGION` | Variable | e.g. `us-central1` |
+| `GCP_WIF_PROVIDER` | Secret | Workload Identity provider resource name |
+| `GCP_WIF_SERVICE_ACCOUNT` | Secret | WIF service account email |
 
 ### Environment Variables
 

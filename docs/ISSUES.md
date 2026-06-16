@@ -55,7 +55,9 @@ No `CORSMiddleware` is configured. Frontend clients making requests from a brows
 
 **Fix:** Add `fastapi.middleware.cors.CORSMiddleware` with appropriate origin allowlist.
 
-## 7. No Cloud Run Deployment for GCP
+## 7. ~~No Cloud Run Deployment for GCP~~ RESOLVED
+
+**Implemented:** GitHub Actions workflow (`.github/workflows/deploy-cloud-run.yml`) with Workload Identity Federation, Artifact Registry, and Secret Manager. See README for setup.
 
 The project has deployment configs for Docker Compose (local) and Render (PaaS), but no setup for **Google Cloud Run**, which is a strong fit for production:
 
