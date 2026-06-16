@@ -22,13 +22,13 @@ on:
       machine_type:
         description: Cloud Run CPU/memory configuration
         required: true
-        default: 1cpu-512Mi
+        default: 1-512Mi
         type: choice
         options:
-          - 1cpu-512Mi
-          - 1cpu-1Gi
-          - 2cpu-2Gi
-          - 4cpu-4Gi
+          - 1-512Mi
+          - 1-1Gi
+          - 2-2Gi
+          - 4-4Gi
 
 env:
   SERVICE_NAME: ${{ inputs.service_name || 'prod-rag-api' }}
