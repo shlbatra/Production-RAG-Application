@@ -54,7 +54,6 @@ app/
 | Metrics Collection | `monitoring.py` | Request count, latency, token usage |
 | Health Checks | `main.py` `/health` | Docker/Kubernetes readiness endpoint |
 | Docker Deployment | `Dockerfile` + `docker-compose.yml` | Non-root user, health check, layer caching |
-| Render Deployment | `render.yml` | Infrastructure as Code with secret separation |
 | Cloud Run Deployment | GitHub Actions + Cloud Run | Artifact Registry, Secret Manager, Workload Identity Federation |
 
 ## Setup
