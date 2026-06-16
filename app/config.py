@@ -9,6 +9,7 @@ from functools import lru_cache
 
 load_dotenv()
 
+
 class Settings(BaseSettings):
     # LLM Config
     openai_api_key: str
@@ -32,8 +33,9 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.app_env == "production"
-    
+
+
 @lru_cache
 def get_settings() -> Settings:
     """Cache settings instance - loaded once, reused everywhere"""
-    return Settings()
+    return Settings()  # type: ignore[call-arg]

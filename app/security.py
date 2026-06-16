@@ -9,6 +9,7 @@ from langsmith import traceable
 
 # === Input Sanitization ===
 
+
 class InputSanitizer:
     """
     Sanitize user input before it reaches LLM.
@@ -40,15 +41,17 @@ class InputSanitizer:
             if pattern.search(text):
                 return False, "Blocked: potential prompt injection detected"
         return True, None
-            
+
     def clean(self, text: str) -> str:
         """Remove potentially dangerous delimiters from input"""
         text = re.sub(r"[-]{3,}", "", text)
         text = re.sub(r"[=]{3,}", "", text)
         text = text.replace("{{", "{ {").replace("}}", "} }")
         return text.strip()
-    
+
+
 # === PII Detection & Masking ===
+
 
 class PIIDetector:
     """
@@ -86,7 +89,8 @@ class PIIDetector:
             masked = pattern.sub(self.MASK_MAP[pii_type], masked)
         return masked
 
- # === Output Validation ===
+
+# === Output Validation ===
 
 
 class OutputValidator:
@@ -125,13 +129,16 @@ class OutputValidator:
                 break
         return output, warnings
 
+
 # === Combined Security Pipeline ===
+
 
 class SecurityPipeline:
     """
     Full security pipeline that processes input and output.
     This is single class you wire into api
     """
+
     def __init__(self):
         self.sanitizer = InputSanitizer()
         self.pii_detector = PIIDetector()
@@ -149,7 +156,7 @@ class SecurityPipeline:
         is_safe, reason = self.sanitizer.check(text)
         if not is_safe:
             return False, "", [reason]
-        
+
         # Step2: Clean input
         cleaned = self.sanitizer.clean(text)
 
@@ -160,7 +167,7 @@ class SecurityPipeline:
             notes.append(f"Input PII masked: {list(pii_found.keys())}")
 
         return True, cleaned, notes
-    
+
     @traceable(name="security_check_output")
     def check_output(self, text: str) -> tuple[str, list[str]]:
         """
@@ -168,5 +175,3 @@ class SecurityPipeline:
         Returns: (cleaned_output, warnings)
         """
         return self.output_validator.validate(text)
-    
-

@@ -7,28 +7,31 @@ from pydantic import BaseModel, Field
 from datetime import datetime, timezone
 import uuid
 
+
 class ChatRequest(BaseModel):
     """Incoming chat request"""
 
     message: str = Field(
-        ...,
-        min_length=1,
-        max_length=10000,
-        description="The user message to agent"
+        ..., min_length=1, max_length=10000, description="The user message to agent"
     )
-    thread_id: str = Field(default_factory=lambda: uuid.uuid4().hex, description="Conversation Thread Id")
+    thread_id: str = Field(
+        default_factory=lambda: uuid.uuid4().hex, description="Conversation Thread Id"
+    )
+
 
 class ChatResponse(BaseModel):
     """Chat response returned to Client"""
+
     response: str
     thread_id: str
     model_used: str
     cached: bool = False
     processing_time_ms: float
     security_notes: list[str] = Field(default_factory=list)
-    timestamp: str=Field(
+    timestamp: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
+
 
 class HealthResponse(BaseModel):
     """Health response check"""
@@ -37,6 +40,7 @@ class HealthResponse(BaseModel):
     environment: str
     version: str = "1.0.0"
     checks: dict = {}
+
 
 class MetricsResponse(BaseModel):
     """Metrics endpoint response"""
@@ -48,6 +52,7 @@ class MetricsResponse(BaseModel):
     cache_hit_rate: str
     total_input_tokens: int
     total_output_tokens: int
+
 
 class ErrorResponse(BaseModel):
     """Standard error response."""

@@ -15,17 +15,21 @@ from app.config import get_settings
 
 # === Agent State ===
 
+
 class AgentState(TypedDict):
     """
     State for production agent
     Uses Annotated with add_messages reducer for message accumulation
     """
+
     messages: Annotated[list[BaseMessage], add_messages]
     error: Optional[str]
     retry_count: int
     model_used: str
 
+
 # === Agent Builder ===
+
 
 class ProductionAgent:
     """
@@ -64,18 +68,14 @@ class ProductionAgent:
             """Try to process message with primary model"""
             try:
                 response = self.primary_llm.invoke(state["messages"])
-                return {
-                    "messages": [response],
-                    "error": None,
-                    "model_used": "primary"
-                }
+                return {"messages": [response], "error": None, "model_used": "primary"}
             except Exception as e:
                 return {
                     "error": str(e),
                     "retry_count": state["retry_count"] + 1,
-                    "model_used": ""
+                    "model_used": "",
                 }
-            
+
         def try_fallback(state: AgentState) -> dict:
             """Fallback to secondary model."""
             try:
@@ -90,15 +90,17 @@ class ProductionAgent:
                     "error": str(e),
                     "model_used": "",
                 }
-        
+
         def handle_error(state: AgentState) -> dict:
             """Return graceful error message"""
             return {
                 "messages": [
-                    AIMessage(content=(
-                        "I'm sorry, I'm having trouble processing your request "
-                        "right now. Please try again in a moment."
-                    ))
+                    AIMessage(
+                        content=(
+                            "I'm sorry, I'm having trouble processing your request "
+                            "right now. Please try again in a moment."
+                        )
+                    )
                 ],
                 "model_used": "error_handler",
             }
@@ -108,9 +110,9 @@ class ProductionAgent:
             if state.get("error") is None:
                 return "done"
             elif state["retry_count"] < self.max_retries:
-                return "fallback" 
+                return "fallback"
             else:
-                return "error" 
+                return "error"
 
         def route_after_fallback(state: AgentState) -> str:
             """Decide what to do after fallback attempt."""
@@ -118,7 +120,7 @@ class ProductionAgent:
                 return "done"
             else:
                 return "error"
-        
+
         # Build graph
         graph = StateGraph(AgentState)
 
@@ -131,34 +133,31 @@ class ProductionAgent:
         graph.add_conditional_edges(
             "process",
             route_after_process,
-            {"done": END, "fallback":"fallback", "error":"error"}
+            {"done": END, "fallback": "fallback", "error": "error"},
         )
         graph.add_conditional_edges(
-            "fallback",
-            route_after_fallback,
-            {"done": END, "error":"error"}
+            "fallback", route_after_fallback, {"done": END, "error": "error"}
         )
         graph.add_edge("error", END)
         return graph.compile()
-    
+
     @traceable(name="production_rag_agent_invoke")
     def invoke(self, message: str) -> dict:
         """
         Invoke agent with user message.
         Returns: {"response": str, "model_used": str, "error": str | None}
-        """ 
+        """
         result = self.graph.invoke(
             {
                 "messages": [HumanMessage(content=message)],
                 "error": None,
                 "retry_count": 0,
-                "model_used": "", 
+                "model_used": "",
             }
         )
 
         return {
             "response": result["messages"][-1].content,
             "model_used": result.get("model_used", "unknown"),
-            "error": result.get("error")
+            "error": result.get("error"),
         }
-

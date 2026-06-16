@@ -15,6 +15,7 @@ Limitations:
   3. No size limit — the cache can grow unbounded. In production, you'd want a max size with an eviction policy (like LRU — least recently used).
 """
 
+
 class ResponseCache:
     """
     In memory response cache with TTL (time-to-live)
@@ -35,8 +36,10 @@ class ResponseCache:
         Create cache key from normalized query
         """
         normalized = query.lower().strip()
-        return hashlib.sha256(normalized.encode()).hexdigest() # What is Python ? and what is python ?, Hashing allows Fixed length and No special characters
-    
+        return hashlib.sha256(
+            normalized.encode()
+        ).hexdigest()  # What is Python ? and what is python ?, Hashing allows Fixed length and No special characters
+
     def get(self, query: str) -> Optional[str]:
         """
         Get cached response if it exists and hasnt expied.
@@ -47,8 +50,8 @@ class ResponseCache:
         if key in self._cache:
             entry = self._cache[key]
             # Check TTL
-            if time.time() - entry['timestamp'] < self.ttl:
-                self._hits+=1
+            if time.time() - entry["timestamp"] < self.ttl:
+                self._hits += 1
                 return entry["response"]
             else:
                 # Expired: remove it
@@ -56,7 +59,7 @@ class ResponseCache:
 
         self._misses += 1
         return None
-    
+
     def set(self, query: str, response: str):
         """
         Cache response. If the key already exists, this overwrites it — effectively refreshing both the response and the timestamp
@@ -65,7 +68,7 @@ class ResponseCache:
         self._cache[key] = {
             "response": response,
             "timestamp": time.time(),
-            "query": query
+            "query": query,
         }
 
     @property
@@ -79,6 +82,5 @@ class ResponseCache:
             "hits": self._hits,
             "misses": self._misses,
             "hit_rate": f"{hit_rate:.1%}",
-            "cached_entries": len(self._cache)
+            "cached_entries": len(self._cache),
         }
-            

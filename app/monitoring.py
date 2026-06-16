@@ -26,7 +26,8 @@ class JSONFormatter(logging.Formatter):
         if hasattr(record, "extra_data"):
             log_obj.update(record.extra_data)
         return json.dumps(log_obj)
-    
+
+
 def get_logger(name: str = "production-rag-api") -> logging.Logger:
     """Create structured JSON logger"""
     logger = logging.getLogger(name)
@@ -39,7 +40,9 @@ def get_logger(name: str = "production-rag-api") -> logging.Logger:
 
     return logger
 
+
 # === Metrics Collector ===
+
 
 class MetricsCollector:
     """
@@ -47,6 +50,7 @@ class MetricsCollector:
 
     In prod, replace with Prometheus Client: from prometheus_client import Counter, Histogram
     """
+
     def __init__(self):
         self._requests_total = 0
         self._errors_total = 0
@@ -58,41 +62,40 @@ class MetricsCollector:
         self._cache_misses = 0
 
     def record_request(
-            self,
-            latency_ms: float,
-            input_tokens: int = 0,
-            output_tokens: int = 0,
-            error: bool = False,
-            cache_hit: bool = False,
+        self,
+        latency_ms: float,
+        input_tokens: int = 0,
+        output_tokens: int = 0,
+        error: bool = False,
+        cache_hit: bool = False,
     ):
         """Record single request metrics"""
-        self._requests_total +=1
-        self._latency_sum +=latency_ms
-        self._latency_count +=1
+        self._requests_total += 1
+        self._latency_sum += latency_ms
+        self._latency_count += 1
         self._tokens_input += input_tokens
         self._tokens_output += output_tokens
 
         if error:
-            self._errors_total +=1
+            self._errors_total += 1
         if cache_hit:
-            self._cache_hits +=1 
+            self._cache_hits += 1
         else:
             if not error:
-                self._cache_misses +=1
+                self._cache_misses += 1
 
     @property
     def summary(self) -> dict:
-
         """A @property that computes summary metrics on demand (called by your /metrics endpoint, which returns a MetricsResponse)."""
 
         avg_latency = (
-            self._latency_sum / self._latency_count
-            if self._latency_count > 0 else 0.0
+            self._latency_sum / self._latency_count if self._latency_count > 0 else 0.0
         )
 
         error_rate = (
             self._errors_total / self._requests_total
-            if self._requests_total > 0 else 0.0
+            if self._requests_total > 0
+            else 0.0
         )
 
         cache_total = self._cache_hits + self._cache_misses
@@ -109,6 +112,7 @@ class MetricsCollector:
             "total_output_tokens": self._tokens_output,
         }
 
+
 # === Request Timer (utility) ===
 class RequestTimer:
     """Context manager for timing requests
@@ -116,15 +120,12 @@ class RequestTimer:
         with RequestTimer() as timer:
             response = await call_llm(query)
         print(timer.elapsed_ms)  # e.g., 342.5
-    
+
     """
 
     def __enter__(self):
         self.start = time.time()
         return self
-    
+
     def __exit__(self, *args):
         self.elapsed_ms = (time.time() - self.start) * 1000
-
-
-    
