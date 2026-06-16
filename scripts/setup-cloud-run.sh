@@ -10,6 +10,7 @@ fi
 
 PROJECT_ID="${GCP_PROJECT_ID:?Set GCP_PROJECT_ID env var}"
 REGION="${GCP_REGION:-us-central1}"
+REPO="${GITHUB_REPO:?Set GITHUB_REPO env var (e.g. owner/repo)}"
 SERVICE_NAME="${1:-prod-rag-api}"
 REPO_NAME="prod-rag"
 
@@ -95,6 +96,7 @@ else
     --location="global" \
     --issuer-uri="https://token.actions.githubusercontent.com" \
     --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository" \
+    --attribute-condition="assertion.repository=='${REPO}'" \
     --project="${PROJECT_ID}"
 fi
 
@@ -119,7 +121,6 @@ for ROLE in roles/run.admin roles/iam.serviceAccountUser roles/artifactregistry.
 done
 
 # Allow GitHub Actions to impersonate the SA
-REPO="${GITHUB_REPO:?Set GITHUB_REPO env var (e.g. owner/repo)}"
 WIF_POOL_ID=$(gcloud iam workload-identity-pools describe "${WIF_POOL}" \
   --location="global" --project="${PROJECT_ID}" --format='value(name)')
 
