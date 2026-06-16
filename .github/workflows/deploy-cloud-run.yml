@@ -8,11 +8,33 @@ on:
         required: true
         default: prod-rag-api
         type: string
+      region:
+        description: GCP region to deploy to
+        required: true
+        default: us-central1
+        type: choice
+        options:
+          - us-central1
+          - us-east1
+          - us-west1
+          - europe-west1
+          - asia-east1
+      machine_type:
+        description: Cloud Run CPU/memory configuration
+        required: true
+        default: 1cpu-512Mi
+        type: choice
+        options:
+          - 1cpu-512Mi
+          - 1cpu-1Gi
+          - 2cpu-2Gi
+          - 4cpu-4Gi
 
 env:
   SERVICE_NAME: ${{ inputs.service_name || 'prod-rag-api' }}
+  REGION: ${{ inputs.region || 'us-central1' }}
   REPO_NAME: prod-rag
-  IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/prod-rag/${{ inputs.service_name || 'prod-rag-api' }}
+  IMAGE: ${{ (inputs.region || 'us-central1') }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/prod-rag/${{ inputs.service_name || 'prod-rag-api' }}
 
 jobs:
   deploy:
@@ -35,7 +57,7 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Configure Docker for Artifact Registry
-        run: gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
       - name: Build and push Docker image
         run: |
@@ -43,15 +65,22 @@ jobs:
           docker push ${{ env.IMAGE }}:${{ github.sha }}
           docker push ${{ env.IMAGE }}:latest
 
+      - name: Parse machine type
+        id: machine
+        run: |
+          MACHINE_TYPE="${{ inputs.machine_type || '1cpu-512Mi' }}"
+          echo "cpu=${MACHINE_TYPE%%-*}" >> "$GITHUB_OUTPUT"
+          echo "memory=${MACHINE_TYPE##*-}" >> "$GITHUB_OUTPUT"
+
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy ${{ env.SERVICE_NAME }} \
             --image=${{ env.IMAGE }}:${{ github.sha }} \
-            --region=${{ vars.GCP_REGION }} \
+            --region=${{ env.REGION }} \
             --project=${{ vars.GCP_PROJECT_ID }} \
             --port=8000 \
-            --memory=512Mi \
-            --cpu=1 \
+            --memory=${{ steps.machine.outputs.memory }} \
+            --cpu=${{ steps.machine.outputs.cpu }} \
             --concurrency=80 \
             --timeout=120 \
             --min-instances=0 \
@@ -63,6 +92,6 @@ jobs:
       - name: Show service URL
         run: |
           gcloud run services describe ${{ env.SERVICE_NAME }} \
-            --region=${{ vars.GCP_REGION }} \
+            --region=${{ env.REGION }} \
             --project=${{ vars.GCP_PROJECT_ID }} \
             --format="value(status.url)"
