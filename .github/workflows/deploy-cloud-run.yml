@@ -3,11 +3,18 @@ name: Deploy to Cloud Run
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      service_name:
+        description: Cloud Run service name to deploy to
+        required: true
+        default: prod-rag-api
+        type: string
 
 env:
-  SERVICE_NAME: prod-rag-api
+  SERVICE_NAME: ${{ inputs.service_name || 'prod-rag-api' }}
   REPO_NAME: prod-rag
-  IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/prod-rag/prod-rag-api
+  IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/prod-rag/${{ inputs.service_name || 'prod-rag-api' }}
 
 jobs:
   deploy:
