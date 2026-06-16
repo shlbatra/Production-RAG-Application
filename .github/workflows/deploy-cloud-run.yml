@@ -1,0 +1,97 @@
+name: Deploy to Cloud Run
+
+on:
+  workflow_dispatch:
+    inputs:
+      service_name:
+        description: Cloud Run service name to deploy to
+        required: true
+        default: prod-rag-api
+        type: string
+      region:
+        description: GCP region to deploy to
+        required: true
+        default: us-central1
+        type: choice
+        options:
+          - us-central1
+          - us-east1
+          - us-west1
+          - europe-west1
+          - asia-east1
+      machine_type:
+        description: Cloud Run CPU/memory configuration
+        required: true
+        default: 1cpu-512Mi
+        type: choice
+        options:
+          - 1cpu-512Mi
+          - 1cpu-1Gi
+          - 2cpu-2Gi
+          - 4cpu-4Gi
+
+env:
+  SERVICE_NAME: ${{ inputs.service_name || 'prod-rag-api' }}
+  REGION: ${{ inputs.region || 'us-central1' }}
+  REPO_NAME: prod-rag
+  IMAGE: ${{ (inputs.region || 'us-central1') }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/prod-rag/${{ inputs.service_name || 'prod-rag-api' }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push Docker image
+        run: |
+          docker build -t ${{ env.IMAGE }}:${{ github.sha }} -t ${{ env.IMAGE }}:latest .
+          docker push ${{ env.IMAGE }}:${{ github.sha }}
+          docker push ${{ env.IMAGE }}:latest
+
+      - name: Parse machine type
+        id: machine
+        run: |
+          MACHINE_TYPE="${{ inputs.machine_type || '1cpu-512Mi' }}"
+          echo "cpu=${MACHINE_TYPE%%-*}" >> "$GITHUB_OUTPUT"
+          echo "memory=${MACHINE_TYPE##*-}" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image=${{ env.IMAGE }}:${{ github.sha }} \
+            --region=${{ env.REGION }} \
+            --project=${{ vars.GCP_PROJECT_ID }} \
+            --port=8000 \
+            --memory=${{ steps.machine.outputs.memory }} \
+            --cpu=${{ steps.machine.outputs.cpu }} \
+            --concurrency=80 \
+            --timeout=120 \
+            --min-instances=0 \
+            --max-instances=3 \
+            --set-secrets="OPENAI_API_KEY=OPENAI_API_KEY:latest,LANGCHAIN_API_KEY=LANGCHAIN_API_KEY:latest" \
+            --set-env-vars="APP_ENV=production,LOG_LEVEL=INFO,RATE_LIMIT=20/minute,CACHE_TTL_SECONDS=300,MAX_RETRIES=3,PRIMARY_MODEL=gpt-4.1-mini,FALLBACK_MODEL=gpt-4.1-nano,LANGCHAIN_TRACING_V2=true,LANGCHAIN_PROJECT=production-api" \
+            --allow-unauthenticated
+
+      - name: Show service URL
+        run: |
+          gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region=${{ env.REGION }} \
+            --project=${{ vars.GCP_PROJECT_ID }} \
+            --format="value(status.url)"
