@@ -19,6 +19,14 @@ class ChatRequest(BaseModel):
     )
 
 
+class SourceReference(BaseModel):
+    """A retrieved document chunk used to inform the response."""
+
+    source: str
+    similarity: float
+    chunk_preview: str
+
+
 class ChatResponse(BaseModel):
     """Chat response returned to Client"""
 
@@ -28,6 +36,7 @@ class ChatResponse(BaseModel):
     cached: bool = False
     processing_time_ms: float
     security_notes: list[str] = Field(default_factory=list)
+    sources: list[SourceReference] | None = None
     timestamp: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -60,3 +69,39 @@ class ErrorResponse(BaseModel):
     error: str
     detail: str | None = None
     request_id: str | None = None
+
+
+class DocumentUploadResponse(BaseModel):
+    """Response after a document has been ingested."""
+
+    doc_id: str
+    filename: str
+    chunks_stored: int
+    status: str
+    processing_time_ms: float
+    timestamp: str = Field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+
+
+class DocumentInfo(BaseModel):
+    """Summary of a single ingested document."""
+
+    doc_id: str
+    source: str
+    chunk_count: int
+
+
+class DocumentListResponse(BaseModel):
+    """Response listing all ingested documents."""
+
+    documents: list[DocumentInfo]
+    total_documents: int
+
+
+class DocumentDeleteResponse(BaseModel):
+    """Response after deleting a document."""
+
+    doc_id: str
+    chunks_deleted: int
+    status: str
