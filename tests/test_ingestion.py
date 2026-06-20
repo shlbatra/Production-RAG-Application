@@ -5,23 +5,6 @@ import pytest
 from app.ingestion import ingest_document
 
 
-@pytest.fixture
-def ingestion_settings():
-    s = MagicMock()
-    s.rag_chunking_strategy = "recursive"
-    s.rag_chunk_size = 20
-    s.rag_chunk_overlap = 0
-    return s
-
-
-@pytest.fixture
-def mock_store():
-    store = MagicMock()
-    store.generate_embeddings.side_effect = lambda texts: [[0.1] for _ in texts]
-    store.insert_chunks.side_effect = lambda records: len(records)
-    return store
-
-
 def _run_ingest(file_bytes, filename, mock_store, ingestion_settings, parse_return="First chunk.\n\nSecond chunk."):
     with (
         patch("app.ingestion.get_parser") as mock_get_parser,
