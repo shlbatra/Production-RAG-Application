@@ -26,6 +26,11 @@ RAG_SYSTEM_PROMPT = (
 
 
 class AgentState(TypedDict):
+    """
+    State for production agent
+    Uses Annotated with add_messages reducer for message accumulation
+    """
+
     messages: Annotated[list[BaseMessage], add_messages]
     error: Optional[str]
     retry_count: int
@@ -35,6 +40,14 @@ class AgentState(TypedDict):
 
 
 class ProductionAgent:
+    """
+    Production LangGraph agent with:
+    - Retry on failure (model fallback)
+    - Graceful error handling
+    - RAG retrieval
+    - LangSmith tracing
+    """
+
     def __init__(self, document_store=None):
         settings = get_settings()
 
@@ -60,6 +73,7 @@ class ProductionAgent:
         self.graph = self._build_graph()
 
     def _build_graph(self):
+        """Build langgraph state machine"""
         settings = get_settings()
 
         def retrieve_context(state: AgentState) -> dict:
@@ -86,6 +100,7 @@ class ProductionAgent:
                 return {"context": [], "sources": []}
 
         def process_message(state: AgentState) -> dict:
+            """Try to process message with primary model"""
             try:
                 messages = list(state["messages"])
                 if state.get("context"):
@@ -106,6 +121,7 @@ class ProductionAgent:
                 }
 
         def try_fallback(state: AgentState) -> dict:
+            """Fallback to secondary model."""
             try:
                 messages = list(state["messages"])
                 if state.get("context"):
@@ -129,6 +145,7 @@ class ProductionAgent:
                 }
 
         def handle_error(state: AgentState) -> dict:
+            """Return graceful error message"""
             return {
                 "messages": [
                     AIMessage(
@@ -142,6 +159,7 @@ class ProductionAgent:
             }
 
         def route_after_process(state: AgentState) -> str:
+            """Decide what to do after primary model attempt"""
             if state.get("error") is None:
                 return "done"
             elif state["retry_count"] < self.max_retries:
@@ -150,6 +168,7 @@ class ProductionAgent:
                 return "error"
 
         def route_after_fallback(state: AgentState) -> str:
+            """Decide what to do after fallback attempt."""
             if state.get("error") is None:
                 return "done"
             else:
@@ -177,6 +196,10 @@ class ProductionAgent:
 
     @traceable(name="production_rag_agent_invoke")
     def invoke(self, message: str) -> dict:
+        """
+        Invoke agent with user message.
+        Returns: {"response": str, "model_used": str, "error": str | None, "sources": list}
+        """
         result = self.graph.invoke(
             {
                 "messages": [HumanMessage(content=message)],
