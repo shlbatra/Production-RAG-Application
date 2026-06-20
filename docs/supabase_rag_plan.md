@@ -186,24 +186,45 @@ Constructor creates:
 
 ---
 
-## Phase 4: Ingestion Pipeline
+## Phase 4: Document Parsing & Ingestion Pipeline
 
-### New file: `app/ingestion.py`
+### 4a. New file: `app/document_parser.py`
 
-**Function: `process_pdf(file_bytes, filename, doc_id, settings)`**
+Separates **parsing** (extracting raw text from a file) from the rest of the ingestion pipeline. Uses a `Protocol` class so new file formats can be added without modifying existing code.
 
-1. Parse PDF with `pypdf.PdfReader(BytesIO(file_bytes))`
-2. Extract text page by page
-3. Chunk with `RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, separators=["\n\n", "\n", ". ", " ", ""])`
-4. Add metadata to each chunk: `{doc_id, source, chunk_index, total_chunks}`
-5. Batch embed all chunks via `document_store.generate_embeddings()`
-6. Return list of prepared chunk dicts
+**Protocol: `DocumentParser`**
+
+```python
+class DocumentParser(Protocol):
+    def parse(self, file: bytes, filename: str) -> str: ...
+```
+
+- `parse` takes raw file bytes + filename, returns the extracted plain text as a single string
+- Protocol (structural typing) — any class with the right shape satisfies the contract, no inheritance required
+
+**Class: `PdfParser`**
+
+First concrete implementation. Uses `pypdf.PdfReader` to extract text page by page and joins with newlines.
+
+**Factory: `get_parser(filename) -> DocumentParser`**
+
+A module-level dict maps file extensions to parser instances (e.g. `{".pdf": PdfParser()}`). `get_parser` extracts the extension from the filename and looks it up. Raises `ValueError` for unsupported types. When a second format is added, implement a class with `parse` and add a mapping entry — `ingestion.py` stays unchanged.
+
+### 4b. New file: `app/ingestion.py`
 
 **Function: `ingest_document(file_bytes, filename, document_store, settings)`**
 
-Orchestrator — generates UUID `doc_id`, calls `process_pdf()`, calls `document_store.insert_chunks()`, returns summary.
+Orchestrator — the single entry point shared by the API endpoint and the CLI script:
 
-This single function is shared by both the API endpoint and the CLI script.
+1. Call `get_parser(filename).parse(file_bytes, filename)` to extract raw text
+2. Chunk with `RecursiveCharacterTextSplitter(chunk_size, chunk_overlap, separators=["\n\n", "\n", ". ", " ", ""])`
+3. Generate UUID `doc_id`
+4. Add metadata to each chunk: `{doc_id, source, chunk_index, total_chunks}`
+5. Batch embed all chunks via `document_store.generate_embeddings()`
+6. Call `document_store.insert_chunks()` to store
+7. Return summary (doc_id, filename, chunk count)
+
+Parsing is fully delegated to `document_parser` — `ingestion.py` only handles chunking, metadata, embedding, and storage.
 
 ---
 
@@ -416,7 +437,8 @@ No changes needed — `pypdf` is pure Python, no system deps. `uv sync` picks up
 | File | Action | What Changes |
 |------|--------|-------------|
 | `app/document_store.py` | **Create** | DocumentStore class (ingest, search, list, delete) |
-| `app/ingestion.py` | **Create** | PDF processing + chunking pipeline |
+| `app/document_parser.py` | **Create** | DocumentParser Protocol + PdfParser + get_parser factory |
+| `app/ingestion.py` | **Create** | Chunking + embedding + storage pipeline (uses document_parser for text extraction) |
 | `scripts/ingest.py` | **Create** | CLI bulk ingestion script |
 | `app/config.py` | Modify | Add Supabase + RAG config fields |
 | `app/agent.py` | Modify | Add retrieve node, context in state, system prompt |
@@ -444,7 +466,8 @@ The design is built around **RAG being optional**:
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| PDF parser | `pypdf` | Pure Python, no native deps, Docker-friendly |
+| Parser abstraction | `Protocol` class | Structural typing — no inheritance needed; new formats added by implementing `parse` + adding a dict entry |
+| PDF parser | `pypdf` via `PdfParser` | Pure Python, no native deps, Docker-friendly |
 | Text splitter | `RecursiveCharacterTextSplitter` | Industry standard, respects semantic boundaries |
 | Chunk size | 1000 chars / 200 overlap | Standard for general-purpose RAG; configurable via env |
 | Embedding model | `text-embedding-3-small` | $0.02/1M tokens, 1536 dims, strong quality |
