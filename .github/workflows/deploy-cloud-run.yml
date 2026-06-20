@@ -85,8 +85,8 @@ jobs:
             --timeout=120 \
             --min-instances=0 \
             --max-instances=3 \
-            --set-secrets="OPENAI_API_KEY=OPENAI_API_KEY:latest,LANGCHAIN_API_KEY=LANGCHAIN_API_KEY:latest" \
-            --set-env-vars="APP_ENV=production,LOG_LEVEL=INFO,RATE_LIMIT=20/minute,CACHE_TTL_SECONDS=300,MAX_RETRIES=3,PRIMARY_MODEL=gpt-4.1-mini,FALLBACK_MODEL=gpt-4.1-nano,LANGCHAIN_TRACING_V2=true,LANGCHAIN_PROJECT=production-api" \
+            --set-secrets="OPENAI_API_KEY=OPENAI_API_KEY:latest,LANGCHAIN_API_KEY=LANGCHAIN_API_KEY:latest,SUPABASE_SERVICE_KEY=SUPABASE_SERVICE_KEY:latest,SUPABASE_DATABASE_URL=SUPABASE_DATABASE_URL:latest" \
+            --set-env-vars="APP_ENV=production,LOG_LEVEL=INFO,RATE_LIMIT=20/minute,CACHE_TTL_SECONDS=300,MAX_RETRIES=3,PRIMARY_MODEL=gpt-4.1-mini,FALLBACK_MODEL=gpt-4.1-nano,LANGCHAIN_TRACING_V2=true,LANGCHAIN_PROJECT=production-api,SUPABASE_URL=${{ vars.SUPABASE_URL }}" \
             --allow-unauthenticated
 
       - name: Show service URL
