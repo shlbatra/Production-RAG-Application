@@ -292,17 +292,15 @@ async def cache_stats():
     return cache.stats
 
 
-# =============================================
-# DOCUMENT ENDPOINTS
-# =============================================
-
-
 @app.post("/documents", response_model=DocumentUploadResponse)
 @limiter.limit("5/minute")
 async def upload_document(request: Request, file: UploadFile):
     """Upload a document for RAG ingestion."""
     if document_store is None:
         raise HTTPException(status_code=503, detail="Document store not configured")
+
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Filename is required")
 
     settings = get_settings()
 
