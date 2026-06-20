@@ -327,7 +327,7 @@ Add `"document_store"` to health checks:
 
 ---
 
-## Phase 7: RAG Retrieval in the Agent
+## Phase 7: RAG Retrieval in the Agent ✅
 
 ### Modify `app/agent.py`
 

@@ -46,3 +46,37 @@ def mock_store():
     store.generate_embeddings.side_effect = lambda texts: [[0.1] for _ in texts]
     store.insert_chunks.side_effect = lambda records: len(records)
     return store
+
+
+@pytest.fixture
+def mock_settings():
+    with patch("app.agent.get_settings") as mock:
+        s = MagicMock()
+        s.primary_model = "gpt-4.1-mini"
+        s.fallback_model = "gpt-4.1-nano"
+        s.openai_api_key = "test-key"
+        s.max_retries = 3
+        s.rag_top_k = 5
+        s.rag_similarity_threshold = 0.7
+        mock.return_value = s
+        yield s
+
+
+@pytest.fixture
+def mock_document_store():
+    store = MagicMock()
+    store.search_similar.return_value = [
+        {
+            "id": 1,
+            "content": "Python is a programming language.",
+            "metadata": {"source": "intro.pdf", "doc_id": "abc"},
+            "similarity": 0.92,
+        },
+        {
+            "id": 2,
+            "content": "Python was created by Guido van Rossum.",
+            "metadata": {"source": "history.pdf", "doc_id": "def"},
+            "similarity": 0.85,
+        },
+    ]
+    return store

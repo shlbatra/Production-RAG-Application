@@ -75,13 +75,13 @@ async def lifespan(app: FastAPI):
     security = SecurityPipeline()
     cache = ResponseCache(ttl_seconds=settings.cache_ttl_seconds)
     metrics = MetricsCollector()
-    agent = ProductionAgent()
-
     if settings.rag_enabled:
         document_store = DocumentStore(settings)
         logger.info("Supabase document store initialized (RAG enabled)")
     else:
         logger.info("Supabase not configured (RAG disabled)")
+
+    agent = ProductionAgent(document_store=document_store)
 
     logger.info("All components initialized. Ready to serve requests")
 
@@ -228,6 +228,7 @@ async def chat(request: Request, body: ChatRequest):
 
         response_text = result["response"]
         model_used = result["model_used"]
+        sources = result.get("sources", [])
 
         # ---- Step 4: Output Validation ----
         validated_response, output_warnings = security.check_output(response_text)
@@ -276,6 +277,7 @@ async def chat(request: Request, body: ChatRequest):
         cached=False,
         processing_time_ms=round(timer.elapsed_ms, 2),
         security_notes=security_notes,
+        sources=sources or None,
     )
 
 
