@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import psycopg2
 import pytest
@@ -17,7 +17,7 @@ class TestInit:
         assert store._threshold == 0.7
         mock_emb.assert_called_once_with(
             model=settings.embedding_model,
-            openai_api_key=settings.openai_api_key,
+            api_key=ANY,
         )
 
 

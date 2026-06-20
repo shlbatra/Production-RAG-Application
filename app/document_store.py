@@ -9,6 +9,7 @@ from typing import Generator
 import psycopg2
 import psycopg2.extras
 from langchain_openai import OpenAIEmbeddings
+from pydantic import SecretStr
 
 from app.config import Settings
 
@@ -20,7 +21,7 @@ class DocumentStore:
         self._dsn = settings.supabase_database_url
         self._embeddings = OpenAIEmbeddings(
             model=settings.embedding_model,
-            openai_api_key=settings.openai_api_key,
+            api_key=SecretStr(settings.openai_api_key),
         )
         self._top_k = settings.rag_top_k
         self._threshold = settings.rag_similarity_threshold
