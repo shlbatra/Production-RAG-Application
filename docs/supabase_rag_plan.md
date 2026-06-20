@@ -188,7 +188,7 @@ Constructor creates:
 
 ## Phase 4: Document Parsing & Ingestion Pipeline
 
-### 4a. New file: `app/document_parser.py`
+### 4a. New file: `app/document_parser.py` ✅
 
 Separates **parsing** (extracting raw text from a file) from the rest of the ingestion pipeline. Uses a `Protocol` class so new file formats can be added without modifying existing code.
 
@@ -210,21 +210,43 @@ First concrete implementation. Uses `pypdf.PdfReader` to extract text page by pa
 
 A module-level dict maps file extensions to parser instances (e.g. `{".pdf": PdfParser()}`). `get_parser` extracts the extension from the filename and looks it up. Raises `ValueError` for unsupported types. When a second format is added, implement a class with `parse` and add a mapping entry — `ingestion.py` stays unchanged.
 
-### 4b. New file: `app/ingestion.py`
+### 4b. New file: `app/chunking.py` ✅
+
+Same Protocol approach as the parser — separates **chunking** (splitting text into pieces) from the rest of the ingestion pipeline.
+
+**Protocol: `ChunkingStrategy`**
+
+```python
+class ChunkingStrategy(Protocol):
+    def chunk(self, text: str) -> list[str]: ...
+```
+
+- `chunk` takes a plain text string and returns a list of text chunks
+- Protocol (structural typing) — any class with the right `chunk` method satisfies the contract
+
+**Class: `RecursiveChunker`**
+
+First concrete implementation. Wraps `RecursiveCharacterTextSplitter` from `langchain-text-splitters` with configurable `chunk_size` and `chunk_overlap`. Constructor takes these as parameters so they can be driven from `Settings`.
+
+**Default instance**
+
+A module-level `default_chunker` using `chunk_size=1000`, `chunk_overlap=200` for convenience. Callers can also instantiate `RecursiveChunker` directly with custom values.
+
+### 4c. New file: `app/ingestion.py`
 
 **Function: `ingest_document(file_bytes, filename, document_store, settings)`**
 
 Orchestrator — the single entry point shared by the API endpoint and the CLI script:
 
 1. Call `get_parser(filename).parse(file_bytes, filename)` to extract raw text
-2. Chunk with `RecursiveCharacterTextSplitter(chunk_size, chunk_overlap, separators=["\n\n", "\n", ". ", " ", ""])`
+2. Call `RecursiveChunker(chunk_size, chunk_overlap).chunk(text)` to split into chunks
 3. Generate UUID `doc_id`
 4. Add metadata to each chunk: `{doc_id, source, chunk_index, total_chunks}`
 5. Batch embed all chunks via `document_store.generate_embeddings()`
 6. Call `document_store.insert_chunks()` to store
 7. Return summary (doc_id, filename, chunk count)
 
-Parsing is fully delegated to `document_parser` — `ingestion.py` only handles chunking, metadata, embedding, and storage.
+Parsing and chunking are fully delegated to `document_parser` — `ingestion.py` only handles metadata, embedding, and storage.
 
 ---
 
@@ -437,8 +459,8 @@ No changes needed — `pypdf` is pure Python, no system deps. `uv sync` picks up
 | File | Action | What Changes |
 |------|--------|-------------|
 | `app/document_store.py` | **Create** | DocumentStore class (ingest, search, list, delete) |
-| `app/document_parser.py` | **Create** | DocumentParser Protocol + PdfParser + get_parser factory |
-| `app/ingestion.py` | **Create** | Chunking + embedding + storage pipeline (uses document_parser for text extraction) |
+| `app/document_parser.py` | **Create** | DocumentParser Protocol + PdfParser + get_parser factory; ChunkingStrategy Protocol + RecursiveChunker |
+| `app/ingestion.py` | **Create** | Metadata + embedding + storage pipeline (uses document_parser for text extraction and chunking) |
 | `scripts/ingest.py` | **Create** | CLI bulk ingestion script |
 | `app/config.py` | Modify | Add Supabase + RAG config fields |
 | `app/agent.py` | Modify | Add retrieve node, context in state, system prompt |
@@ -468,7 +490,8 @@ The design is built around **RAG being optional**:
 |----------|--------|-----------|
 | Parser abstraction | `Protocol` class | Structural typing — no inheritance needed; new formats added by implementing `parse` + adding a dict entry |
 | PDF parser | `pypdf` via `PdfParser` | Pure Python, no native deps, Docker-friendly |
-| Text splitter | `RecursiveCharacterTextSplitter` | Industry standard, respects semantic boundaries |
+| Chunking abstraction | `Protocol` class | Same pattern as parser; swap to semantic/structure-aware chunking by implementing `chunk` |
+| Text splitter | `RecursiveCharacterTextSplitter` via `RecursiveChunker` | Industry standard, respects semantic boundaries |
 | Chunk size | 1000 chars / 200 overlap | Standard for general-purpose RAG; configurable via env |
 | Embedding model | `text-embedding-3-small` | $0.02/1M tokens, 1536 dims, strong quality |
 | Vector index | HNSW with cosine ops | Fast approximate search, pgvector standard |
