@@ -251,7 +251,7 @@ Parsing and chunking are fully delegated to `document_parser` — `ingestion.py`
 
 ---
 
-## Phase 5: New API Models
+## Phase 5: New API Models ✅
 
 ### Add to `app/models.py`
 
