@@ -9,7 +9,7 @@ from typing import Protocol, runtime_checkable
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from app.config import Settings
+from app.config import Settings, get_settings
 
 
 @runtime_checkable
@@ -18,10 +18,11 @@ class ChunkingStrategy(Protocol):
 
 
 class RecursiveChunker:
-    def __init__(self, chunk_size: int = 1000, chunk_overlap: int = 200) -> None:
+    def __init__(self) -> None:
+        settings = get_settings()
         self._splitter = RecursiveCharacterTextSplitter(
-            chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
+            chunk_size=settings.rag_chunk_size,
+            chunk_overlap=settings.rag_chunk_overlap,
             separators=["\n\n", "\n", ". ", " ", ""],
         )
 
