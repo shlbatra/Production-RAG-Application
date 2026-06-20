@@ -80,6 +80,21 @@ uv sync
 uv run uvicorn app.main:app --reload --port 8000
 ```
 
+### Supabase Setup
+
+1. Create a project at [supabase.com/dashboard](https://supabase.com/dashboard)
+2. Run the SQL migration against your Supabase database:
+
+```bash
+# Using individual connection flags
+psql -h db.<project-ref>.supabase.co -p 5432 -d postgres -U postgres -f supabase/migrations/001_create_documents.sql
+
+# Or using the full connection string
+psql -d "$SUPABASE_DATABASE_URL" -f supabase/migrations/001_create_documents.sql
+```
+
+3. Add `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, and `SUPABASE_DATABASE_URL` to your `.env`
+
 ### Docker
 
 ```bash
