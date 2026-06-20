@@ -5,7 +5,13 @@ import pytest
 from app.ingestion import ingest_document
 
 
-def _run_ingest(file_bytes, filename, mock_store, ingestion_settings, parse_return="First chunk.\n\nSecond chunk."):
+def _run_ingest(
+    file_bytes,
+    filename,
+    mock_store,
+    ingestion_settings,
+    parse_return="First chunk.\n\nSecond chunk.",
+):
     with (
         patch("app.ingestion.get_parser") as mock_get_parser,
         patch("app.chunking.get_settings", return_value=ingestion_settings),
@@ -19,15 +25,25 @@ def _run_ingest(file_bytes, filename, mock_store, ingestion_settings, parse_retu
 
 # ingest_document
 class TestIngestDocument:
-    def test_returns_summary_with_doc_id_and_count(self, mock_store, ingestion_settings):
-        result, _, _ = _run_ingest(b"fake-pdf", "report.pdf", mock_store, ingestion_settings)
+    def test_returns_summary_with_doc_id_and_count(
+        self, mock_store, ingestion_settings
+    ):
+        result, _, _ = _run_ingest(
+            b"fake-pdf", "report.pdf", mock_store, ingestion_settings
+        )
         assert "doc_id" in result
         assert result["filename"] == "report.pdf"
         assert result["chunks_stored"] == 2
 
-    def test_calls_parser_with_file_bytes_and_filename(self, mock_store, ingestion_settings):
+    def test_calls_parser_with_file_bytes_and_filename(
+        self, mock_store, ingestion_settings
+    ):
         _, mock_get_parser, mock_parser = _run_ingest(
-            b"raw-bytes", "doc.pdf", mock_store, ingestion_settings, parse_return="Some text."
+            b"raw-bytes",
+            "doc.pdf",
+            mock_store,
+            ingestion_settings,
+            parse_return="Some text.",
         )
         mock_get_parser.assert_called_once_with("doc.pdf")
         mock_parser.parse.assert_called_once_with(b"raw-bytes", "doc.pdf")
@@ -50,8 +66,12 @@ class TestIngestDocument:
             assert "doc_id" in record["metadata"]
 
     def test_generates_unique_doc_ids(self, mock_store, ingestion_settings):
-        r1, _, _ = _run_ingest(b"fake", "a.pdf", mock_store, ingestion_settings, parse_return="Some text.")
-        r2, _, _ = _run_ingest(b"fake", "b.pdf", mock_store, ingestion_settings, parse_return="Some text.")
+        r1, _, _ = _run_ingest(
+            b"fake", "a.pdf", mock_store, ingestion_settings, parse_return="Some text."
+        )
+        r2, _, _ = _run_ingest(
+            b"fake", "b.pdf", mock_store, ingestion_settings, parse_return="Some text."
+        )
         assert r1["doc_id"] != r2["doc_id"]
 
     def test_raises_for_unsupported_file_type(self, mock_store, ingestion_settings):

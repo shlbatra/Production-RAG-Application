@@ -21,14 +21,20 @@ class TestRecursiveChunker:
         assert result == ["Hello world"]
 
     def test_splits_long_text_into_multiple_chunks(self):
-        with patch("app.chunking.get_settings", return_value=_mock_settings(chunk_size=50, chunk_overlap=10)):
+        with patch(
+            "app.chunking.get_settings",
+            return_value=_mock_settings(chunk_size=50, chunk_overlap=10),
+        ):
             chunker = RecursiveChunker()
         text = "A" * 120
         result = chunker.chunk(text)
         assert len(result) > 1
 
     def test_splits_on_paragraph_boundary(self):
-        with patch("app.chunking.get_settings", return_value=_mock_settings(chunk_size=30, chunk_overlap=0)):
+        with patch(
+            "app.chunking.get_settings",
+            return_value=_mock_settings(chunk_size=30, chunk_overlap=0),
+        ):
             chunker = RecursiveChunker()
         text = "First paragraph here.\n\nSecond paragraph here."
         result = chunker.chunk(text)
@@ -37,7 +43,10 @@ class TestRecursiveChunker:
         assert "Second" in result[1]
 
     def test_chunks_overlap_when_configured(self):
-        with patch("app.chunking.get_settings", return_value=_mock_settings(chunk_size=50, chunk_overlap=10)):
+        with patch(
+            "app.chunking.get_settings",
+            return_value=_mock_settings(chunk_size=50, chunk_overlap=10),
+        ):
             chunker = RecursiveChunker()
         text = " ".join(f"word{i}" for i in range(50))
         result = chunker.chunk(text)
