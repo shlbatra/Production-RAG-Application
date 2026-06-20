@@ -6,6 +6,7 @@ import pytest
 from app.document_store import DocumentStore
 
 
+# DocumentStore.__init__
 class TestInit:
     def test_stores_dsn_and_defaults(self, settings):
         with patch("app.document_store.OpenAIEmbeddings") as mock_emb:
@@ -20,6 +21,7 @@ class TestInit:
         )
 
 
+# DocumentStore.generate_embedding / generate_embeddings
 class TestGenerateEmbedding:
     def test_delegates_to_embed_query(self, store):
         store._embeddings.embed_query.return_value = [0.1, 0.2, 0.3]
@@ -34,6 +36,7 @@ class TestGenerateEmbedding:
         assert result == [[0.1], [0.2]]
 
 
+# DocumentStore.insert_chunks
 class TestInsertChunks:
     def test_inserts_single_batch(self, store, mock_conn):
         conn, cursor = mock_conn
@@ -76,6 +79,7 @@ class TestInsertChunks:
         mock_exec.assert_not_called()
 
 
+# DocumentStore.search_similar
 class TestSearchSimilar:
     def test_embeds_query_and_calls_rpc(self, store, mock_conn):
         conn, cursor = mock_conn
@@ -109,6 +113,7 @@ class TestSearchSimilar:
         assert params[2] == 0.7
 
 
+# DocumentStore.list_documents
 class TestListDocuments:
     def test_returns_grouped_documents(self, store, mock_conn):
         conn, cursor = mock_conn
@@ -128,6 +133,7 @@ class TestListDocuments:
         assert "doc_id" in sql
 
 
+# DocumentStore.delete_document
 class TestDeleteDocument:
     def test_deletes_by_doc_id(self, store, mock_conn):
         conn, cursor = mock_conn
@@ -142,6 +148,7 @@ class TestDeleteDocument:
         assert params == ("abc-123",)
 
 
+# DocumentStore.health_check
 class TestHealthCheck:
     def test_returns_true_on_success(self, store, mock_conn):
         conn, _ = mock_conn
@@ -157,6 +164,7 @@ class TestHealthCheck:
             assert store.health_check() is False
 
 
+# DocumentStore._conn
 class TestConnContextManager:
     def test_commits_on_success(self, store):
         conn = MagicMock()
