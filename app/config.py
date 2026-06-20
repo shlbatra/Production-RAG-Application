@@ -28,6 +28,7 @@ class Settings(BaseSettings):
 
     # RAG Settings
     embedding_model: str = "text-embedding-3-small"
+    rag_chunking_strategy: str = "recursive"
     rag_chunk_size: int = 1000
     rag_chunk_overlap: int = 200
     rag_top_k: int = 5
