@@ -41,12 +41,22 @@ class TestInsertChunks:
     def test_inserts_single_batch(self, store, mock_conn):
         conn, cursor = mock_conn
         chunks = [
-            {"content": "text1", "metadata": {"doc_id": "abc"}, "embedding": [0.1, 0.2]},
-            {"content": "text2", "metadata": {"doc_id": "abc"}, "embedding": [0.3, 0.4]},
+            {
+                "content": "text1",
+                "metadata": {"doc_id": "abc"},
+                "embedding": [0.1, 0.2],
+            },
+            {
+                "content": "text2",
+                "metadata": {"doc_id": "abc"},
+                "embedding": [0.3, 0.4],
+            },
         ]
 
         with patch("app.document_store.psycopg2.connect", return_value=conn):
-            with patch("app.document_store.psycopg2.extras.execute_values") as mock_exec:
+            with patch(
+                "app.document_store.psycopg2.extras.execute_values"
+            ) as mock_exec:
                 result = store.insert_chunks(chunks)
 
         assert result == 2
@@ -62,7 +72,9 @@ class TestInsertChunks:
         ]
 
         with patch("app.document_store.psycopg2.connect", return_value=conn):
-            with patch("app.document_store.psycopg2.extras.execute_values") as mock_exec:
+            with patch(
+                "app.document_store.psycopg2.extras.execute_values"
+            ) as mock_exec:
                 result = store.insert_chunks(chunks)
 
         assert result == 150
@@ -72,7 +84,9 @@ class TestInsertChunks:
         conn, _ = mock_conn
 
         with patch("app.document_store.psycopg2.connect", return_value=conn):
-            with patch("app.document_store.psycopg2.extras.execute_values") as mock_exec:
+            with patch(
+                "app.document_store.psycopg2.extras.execute_values"
+            ) as mock_exec:
                 result = store.insert_chunks([])
 
         assert result == 0
@@ -85,7 +99,12 @@ class TestSearchSimilar:
         conn, cursor = mock_conn
         store._embeddings.embed_query.return_value = [0.1, 0.2]
         cursor.fetchall.return_value = [
-            {"id": 1, "content": "chunk", "metadata": {"source": "doc.pdf"}, "similarity": 0.9},
+            {
+                "id": 1,
+                "content": "chunk",
+                "metadata": {"source": "doc.pdf"},
+                "similarity": 0.9,
+            },
         ]
 
         with patch("app.document_store.psycopg2.connect", return_value=conn):
@@ -94,9 +113,9 @@ class TestSearchSimilar:
         store._embeddings.embed_query.assert_called_once_with("test query")
         cursor.execute.assert_called_once()
         sql, params = cursor.execute.call_args[0]
-        assert "match_documents" in sql
-        assert params[1] == 3
-        assert params[2] == 0.8
+        assert "match_documents" in sql  # sql query for match
+        assert params[1] == 3  # top_k
+        assert params[2] == 0.8  # threshold
         assert len(results) == 1
         assert results[0]["similarity"] == 0.9
 

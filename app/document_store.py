@@ -84,6 +84,7 @@ class DocumentStore:
                 return [dict(row) for row in cur.fetchall()]
 
     def list_documents(self) -> list[dict]:
+        """Query distinct documents by grouping chunks on doc_id and source, returning each document's chunk count ordered by most recently ingested first."""
         with self._conn() as conn:
             with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
                 cur.execute("""
