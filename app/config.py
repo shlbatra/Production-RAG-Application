@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     langchain_api_key: str = ""
     langchain_project: str = "production-api"
 
+    # Supabase
+    supabase_url: str = ""
+    supabase_service_key: str = ""
+
     # Application
     app_env: str = "development"
     log_level: str = "INFO"
@@ -33,6 +37,10 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.app_env == "production"
+
+    @property
+    def rag_enabled(self) -> bool:
+        return bool(self.supabase_url and self.supabase_service_key)
 
 
 @lru_cache
