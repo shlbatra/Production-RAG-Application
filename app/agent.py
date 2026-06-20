@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 RAG_SYSTEM_PROMPT = (
     "You are a helpful assistant. Use the following retrieved documents to answer "
     "the user's question. If the documents don't contain relevant information, "
-    "say so and answer based on your general knowledge.\n\n"
+    "say you don't have sufficient context to answer the question.\n\n"
     "Retrieved Documents:\n"
 )
 
