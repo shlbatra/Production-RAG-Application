@@ -406,7 +406,7 @@ return {
 
 ---
 
-## Phase 8: CLI Ingestion Script
+## Phase 8: CLI Ingestion Script ✅
 
 ### New file: `scripts/ingest.py`
 
