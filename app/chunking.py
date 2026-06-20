@@ -34,7 +34,7 @@ _STRATEGY_MAP: dict[str, type[RecursiveChunker]] = {
 }
 
 
-def get_chunker(settings: Settings) -> ChunkingStrategy:
+def get_chunker(settings: Settings) -> type:
     cls = _STRATEGY_MAP.get(settings.rag_chunking_strategy)
     if cls is None:
         supported = sorted(_STRATEGY_MAP.keys())
@@ -42,7 +42,4 @@ def get_chunker(settings: Settings) -> ChunkingStrategy:
             f"Unknown chunking strategy '{settings.rag_chunking_strategy}'. "
             f"Supported: {', '.join(supported)}"
         )
-    return cls(
-        chunk_size=settings.rag_chunk_size,
-        chunk_overlap=settings.rag_chunk_overlap,
-    )
+    return cls
