@@ -12,7 +12,7 @@ The `prod_rag` project is currently a **chat API** — it sends user messages di
 
 ---
 
-## Phase 0: Supabase Project Setup (Manual, One-Time)
+## Phase 0: Supabase Project Setup (Manual, One-Time) ✅
 
 ### 0.1 Create Supabase Project
 
@@ -96,7 +96,7 @@ USING (true) WITH CHECK (true);
 
 ---
 
-## Phase 1: New Dependencies
+## Phase 1: New Dependencies ✅
 
 Add to `pyproject.toml`:
 
@@ -114,7 +114,7 @@ We use `RecursiveCharacterTextSplitter` from `langchain_text_splitters` which is
 
 ---
 
-## Phase 2: Configuration Updates
+## Phase 2: Configuration Updates ✅
 
 ### 2a. Modify `app/config.py`
 
@@ -162,14 +162,14 @@ MAX_UPLOAD_SIZE_MB=10
 
 ---
 
-## Phase 3: Document Store Module
+## Phase 3: Document Store Module ✅
 
 ### New file: `app/document_store.py`
 
 **Class: `DocumentStore`**
 
 Constructor creates:
-- Supabase client via `create_client(url, service_key)`
+- PostgreSQL connection via `psycopg2.connect(supabase_database_url)` (direct DB access, not REST API)
 - OpenAI embeddings via `OpenAIEmbeddings(model=embedding_model)`
 
 **Methods:**
