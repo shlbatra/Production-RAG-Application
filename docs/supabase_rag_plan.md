@@ -233,7 +233,7 @@ First concrete implementation. Wraps `RecursiveCharacterTextSplitter` from `lang
 
 Reads `settings.rag_chunking_strategy` (default `"recursive"`) and returns the matching chunker instance configured with `settings.rag_chunk_size` and `settings.rag_chunk_overlap`. Raises `ValueError` for unknown strategy names. When a second strategy is added, implement the class and add a mapping entry.
 
-### 4c. New file: `app/ingestion.py`
+### 4c. New file: `app/ingestion.py` ✅
 
 **Function: `ingest_document(file_bytes, filename, document_store, settings)`**
 
