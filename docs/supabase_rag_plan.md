@@ -251,7 +251,7 @@ Parsing and chunking are fully delegated to `document_parser` — `ingestion.py`
 
 ---
 
-## Phase 5: New API Models
+## Phase 5: New API Models ✅
 
 ### Add to `app/models.py`
 
@@ -291,7 +291,7 @@ Each source: `{"source": "report.pdf", "similarity": 0.85, "chunk_preview": "fir
 
 ---
 
-## Phase 6: New Endpoints in `app/main.py`
+## Phase 6: New Endpoints in `app/main.py` ✅
 
 ### 6.1 Lifespan Update
 
