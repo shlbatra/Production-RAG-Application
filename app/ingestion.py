@@ -25,10 +25,7 @@ def ingest_document(
     text = parser.parse(file_bytes, filename)
 
     chunker_cls = get_chunker(settings)
-    chunker = chunker_cls(
-        chunk_size=settings.rag_chunk_size,
-        chunk_overlap=settings.rag_chunk_overlap,
-    )
+    chunker = chunker_cls()
     chunks = chunker.chunk(text)
 
     doc_id = uuid.uuid4().hex

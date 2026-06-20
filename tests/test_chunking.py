@@ -1,25 +1,35 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from app.chunking import ChunkingStrategy, RecursiveChunker, get_chunker
 
 
+def _mock_settings(chunk_size: int = 1000, chunk_overlap: int = 200):
+    s = MagicMock()
+    s.rag_chunk_size = chunk_size
+    s.rag_chunk_overlap = chunk_overlap
+    return s
+
+
 # RecursiveChunker.chunk
 class TestRecursiveChunker:
     def test_short_text_returns_single_chunk(self):
-        chunker = RecursiveChunker(chunk_size=1000, chunk_overlap=200)
+        with patch("app.chunking.get_settings", return_value=_mock_settings()):
+            chunker = RecursiveChunker()
         result = chunker.chunk("Hello world")
         assert result == ["Hello world"]
 
     def test_splits_long_text_into_multiple_chunks(self):
-        chunker = RecursiveChunker(chunk_size=50, chunk_overlap=10)
+        with patch("app.chunking.get_settings", return_value=_mock_settings(chunk_size=50, chunk_overlap=10)):
+            chunker = RecursiveChunker()
         text = "A" * 120
         result = chunker.chunk(text)
         assert len(result) > 1
 
     def test_splits_on_paragraph_boundary(self):
-        chunker = RecursiveChunker(chunk_size=30, chunk_overlap=0)
+        with patch("app.chunking.get_settings", return_value=_mock_settings(chunk_size=30, chunk_overlap=0)):
+            chunker = RecursiveChunker()
         text = "First paragraph here.\n\nSecond paragraph here."
         result = chunker.chunk(text)
         assert len(result) == 2
@@ -27,7 +37,8 @@ class TestRecursiveChunker:
         assert "Second" in result[1]
 
     def test_chunks_overlap_when_configured(self):
-        chunker = RecursiveChunker(chunk_size=50, chunk_overlap=10)
+        with patch("app.chunking.get_settings", return_value=_mock_settings(chunk_size=50, chunk_overlap=10)):
+            chunker = RecursiveChunker()
         text = " ".join(f"word{i}" for i in range(50))
         result = chunker.chunk(text)
         assert len(result) > 1
@@ -37,12 +48,14 @@ class TestRecursiveChunker:
             assert words_prev & words_curr
 
     def test_empty_text_returns_empty_list(self):
-        chunker = RecursiveChunker()
+        with patch("app.chunking.get_settings", return_value=_mock_settings()):
+            chunker = RecursiveChunker()
         result = chunker.chunk("")
         assert result == []
 
     def test_satisfies_protocol(self):
-        chunker = RecursiveChunker()
+        with patch("app.chunking.get_settings", return_value=_mock_settings()):
+            chunker = RecursiveChunker()
         assert isinstance(chunker, ChunkingStrategy)
 
 
