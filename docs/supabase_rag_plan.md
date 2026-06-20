@@ -127,6 +127,7 @@ supabase_service_key: str = ""
 
 # RAG Settings
 embedding_model: str = "text-embedding-3-small"
+rag_chunking_strategy: str = "recursive"
 rag_chunk_size: int = 1000
 rag_chunk_overlap: int = 200
 rag_top_k: int = 5
@@ -228,9 +229,9 @@ class ChunkingStrategy(Protocol):
 
 First concrete implementation. Wraps `RecursiveCharacterTextSplitter` from `langchain-text-splitters` with configurable `chunk_size` and `chunk_overlap`. Constructor takes these as parameters so they can be driven from `Settings`.
 
-**Default instance**
+**Factory: `get_chunker(settings) -> ChunkingStrategy`**
 
-A module-level `default_chunker` using `chunk_size=1000`, `chunk_overlap=200` for convenience. Callers can also instantiate `RecursiveChunker` directly with custom values.
+Reads `settings.rag_chunking_strategy` (default `"recursive"`) and returns the matching chunker instance configured with `settings.rag_chunk_size` and `settings.rag_chunk_overlap`. Raises `ValueError` for unknown strategy names. When a second strategy is added, implement the class and add a mapping entry.
 
 ### 4c. New file: `app/ingestion.py`
 
@@ -239,7 +240,7 @@ A module-level `default_chunker` using `chunk_size=1000`, `chunk_overlap=200` fo
 Orchestrator — the single entry point shared by the API endpoint and the CLI script:
 
 1. Call `get_parser(filename).parse(file_bytes, filename)` to extract raw text
-2. Call `RecursiveChunker(chunk_size, chunk_overlap).chunk(text)` to split into chunks
+2. Call `get_chunker(settings).chunk(text)` to split into chunks
 3. Generate UUID `doc_id`
 4. Add metadata to each chunk: `{doc_id, source, chunk_index, total_chunks}`
 5. Batch embed all chunks via `document_store.generate_embeddings()`
