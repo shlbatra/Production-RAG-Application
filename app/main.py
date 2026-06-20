@@ -11,7 +11,7 @@ Wires together:
 - Health checks
 """
 
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -20,11 +20,22 @@ from langsmith import traceable
 from dotenv import load_dotenv
 
 from app.config import get_settings
-from app.models import ChatRequest, ChatResponse, HealthResponse, MetricsResponse
+from app.models import (
+    ChatRequest,
+    ChatResponse,
+    DocumentDeleteResponse,
+    DocumentInfo,
+    DocumentListResponse,
+    DocumentUploadResponse,
+    HealthResponse,
+    MetricsResponse,
+)
 from app.security import SecurityPipeline
 from app.cache import ResponseCache
 from app.monitoring import get_logger, MetricsCollector, RequestTimer
 from app.agent import ProductionAgent
+from app.document_store import DocumentStore
+from app.ingestion import ingest_document
 
 load_dotenv()
 
@@ -34,6 +45,7 @@ security: SecurityPipeline = None  # type: ignore[assignment]
 cache: ResponseCache = None  # type: ignore[assignment]
 metrics: MetricsCollector = None  # type: ignore[assignment]
 agent: ProductionAgent = None  # type: ignore[assignment]
+document_store: DocumentStore | None = None
 logger = get_logger()
 
 
@@ -44,7 +56,7 @@ async def lifespan(app: FastAPI):
     Modern FASTAPI development (replaces @app.on_event)
     """
 
-    global security, cache, metrics, agent
+    global security, cache, metrics, agent, document_store
 
     settings = get_settings()
 
@@ -64,6 +76,12 @@ async def lifespan(app: FastAPI):
     cache = ResponseCache(ttl_seconds=settings.cache_ttl_seconds)
     metrics = MetricsCollector()
     agent = ProductionAgent()
+
+    if settings.rag_enabled:
+        document_store = DocumentStore(settings)
+        logger.info("Supabase document store initialized (RAG enabled)")
+    else:
+        logger.info("Supabase not configured (RAG disabled)")
 
     logger.info("All components initialized. Ready to serve requests")
 
@@ -118,6 +136,9 @@ async def health():
         "agent": agent is not None,
         "security": security is not None,
         "cache": cache is not None,
+        "document_store": (
+            document_store.health_check() if document_store else "not_configured"
+        ),
     }
 
     all_healthy = all(checks.values())
@@ -269,3 +290,83 @@ async def get_metrics():
 async def cache_stats():
     """Cache performance statistics."""
     return cache.stats
+
+
+# =============================================
+# DOCUMENT ENDPOINTS
+# =============================================
+
+
+@app.post("/documents", response_model=DocumentUploadResponse)
+@limiter.limit("5/minute")
+async def upload_document(request: Request, file: UploadFile):
+    """Upload a document for RAG ingestion."""
+    if document_store is None:
+        raise HTTPException(status_code=503, detail="Document store not configured")
+
+    settings = get_settings()
+
+    max_bytes = settings.max_upload_size_mb * 1024 * 1024
+    file_bytes = await file.read()
+    if len(file_bytes) > max_bytes:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File exceeds maximum size of {settings.max_upload_size_mb} MB",
+        )
+
+    with RequestTimer() as timer:
+        try:
+            result = ingest_document(
+                file_bytes, file.filename, document_store, settings
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        except Exception as e:
+            logger.error(
+                "Document ingestion failed",
+                extra={"extra_data": {"filename": file.filename, "error": str(e)}},
+            )
+            raise HTTPException(status_code=500, detail="Document ingestion failed")
+
+    return DocumentUploadResponse(
+        doc_id=result["doc_id"],
+        filename=result["filename"],
+        chunks_stored=result["chunks_stored"],
+        status="success",
+        processing_time_ms=round(timer.elapsed_ms, 2),
+    )
+
+
+@app.get("/documents", response_model=DocumentListResponse)
+async def list_documents():
+    """List all ingested documents."""
+    if document_store is None:
+        raise HTTPException(status_code=503, detail="Document store not configured")
+
+    rows = document_store.list_documents()
+    documents = [
+        DocumentInfo(
+            doc_id=row["doc_id"],
+            source=row["source"],
+            chunk_count=row["chunk_count"],
+        )
+        for row in rows
+    ]
+    return DocumentListResponse(documents=documents, total_documents=len(documents))
+
+
+@app.delete("/documents/{doc_id}", response_model=DocumentDeleteResponse)
+async def delete_document(doc_id: str):
+    """Delete a document and all its chunks."""
+    if document_store is None:
+        raise HTTPException(status_code=503, detail="Document store not configured")
+
+    chunks_deleted = document_store.delete_document(doc_id)
+    if chunks_deleted == 0:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    return DocumentDeleteResponse(
+        doc_id=doc_id,
+        chunks_deleted=chunks_deleted,
+        status="deleted",
+    )
