@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     # Supabase
     supabase_url: str = ""
     supabase_service_key: str = ""
+    supabase_database_url: str = ""
 
     # RAG Settings
     embedding_model: str = "text-embedding-3-small"
@@ -48,7 +49,7 @@ class Settings(BaseSettings):
 
     @property
     def rag_enabled(self) -> bool:
-        return bool(self.supabase_url and self.supabase_service_key)
+        return bool(self.supabase_database_url)
 
 
 @lru_cache
