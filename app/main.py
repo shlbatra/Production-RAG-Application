@@ -11,6 +11,8 @@ Wires together:
 - Health checks
 """
 
+import uuid
+
 from fastapi import FastAPI, Request, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 from slowapi import Limiter
@@ -170,6 +172,8 @@ async def chat(request: Request, body: ChatRequest):
     5. Cache store
     6. Return response
     """
+    thread_id = uuid.uuid4().hex
+
     with RequestTimer() as timer:
         security_notes = []
 
@@ -183,7 +187,7 @@ async def chat(request: Request, body: ChatRequest):
                 extra={
                     "extra_data": {
                         "reason": notes,
-                        "thread_id": body.thread_id,
+                        "thread_id": thread_id,
                     }
                 },
             )
@@ -200,14 +204,14 @@ async def chat(request: Request, body: ChatRequest):
                 "Cache hit",
                 extra={
                     "extra_data": {
-                        "thread_id": body.thread_id,
+                        "thread_id": thread_id,
                     }
                 },
             )
 
             return ChatResponse(
                 response=cached_response,
-                thread_id=body.thread_id,
+                thread_id=thread_id,
                 model_used="cache",
                 cached=True,
                 processing_time_ms=0,
@@ -222,7 +226,7 @@ async def chat(request: Request, body: ChatRequest):
                 f"Agent invocation failed: {e}",
                 extra={
                     "extra_data": {
-                        "thread_id": body.thread_id,
+                        "thread_id": thread_id,
                         "error": str(e),
                     }
                 },
@@ -260,7 +264,7 @@ async def chat(request: Request, body: ChatRequest):
             extra={
                 "extra_data": {
                     "notes": security_notes,
-                    "thread_id": body.thread_id,
+                    "thread_id": thread_id,
                 }
             },
         )
@@ -269,7 +273,7 @@ async def chat(request: Request, body: ChatRequest):
         "Request completed",
         extra={
             "extra_data": {
-                "thread_id": body.thread_id,
+                "thread_id": thread_id,
                 "model_used": model_used,
                 "latency_ms": round(timer.elapsed_ms, 2),
             }
@@ -278,7 +282,7 @@ async def chat(request: Request, body: ChatRequest):
 
     return ChatResponse(
         response=validated_response,
-        thread_id=body.thread_id,
+        thread_id=thread_id,
         model_used=model_used,
         cached=False,
         processing_time_ms=round(timer.elapsed_ms, 2),
