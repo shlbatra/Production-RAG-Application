@@ -96,6 +96,8 @@ async def lifespan(app: FastAPI):
     yield  # App is running
 
     # Shutdown
+    if document_store:
+        document_store.close()
     logger.info("Shutting down...", extra={"extra_data": metrics.summary})
 
 

@@ -8,6 +8,7 @@ from typing import Generator
 
 import psycopg2
 import psycopg2.extras
+from psycopg2.pool import ThreadedConnectionPool
 from langchain_openai import OpenAIEmbeddings
 from pydantic import SecretStr
 
@@ -19,6 +20,11 @@ logger = logging.getLogger(__name__)
 class DocumentStore:
     def __init__(self, settings: Settings) -> None:
         self._dsn = settings.supabase_database_url
+        self._pool = ThreadedConnectionPool(
+            minconn=settings.db_pool_min_conn,
+            maxconn=settings.db_pool_max_conn,
+            dsn=self._dsn,
+        )
         self._embeddings = OpenAIEmbeddings(
             model=settings.embedding_model,
             api_key=SecretStr(settings.openai_api_key),
@@ -28,7 +34,7 @@ class DocumentStore:
 
     @contextmanager
     def _conn(self) -> Generator:
-        conn = psycopg2.connect(self._dsn)
+        conn = self._pool.getconn()
         try:
             yield conn
             conn.commit()
@@ -36,7 +42,12 @@ class DocumentStore:
             conn.rollback()
             raise
         finally:
-            conn.close()
+            self._pool.putconn(conn)
+
+    def close(self) -> None:
+        """Close all connections in the pool."""
+        if self._pool:
+            self._pool.closeall()
 
     def generate_embedding(self, text: str) -> list[float]:
         return self._embeddings.embed_query(text)

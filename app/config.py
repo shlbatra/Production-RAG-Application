@@ -36,6 +36,10 @@ class Settings(BaseSettings):
     rag_similarity_threshold: float = 0.7
     max_upload_size_mb: int = 10
 
+    # Connection Pool
+    db_pool_min_conn: int = 2
+    db_pool_max_conn: int = 10
+
     # Application
     app_env: str = "development"
     log_level: str = "INFO"
