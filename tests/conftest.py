@@ -97,6 +97,26 @@ def mock_doc_store():
 
 
 @pytest.fixture
+def mock_retriever():
+    retriever = MagicMock()
+    retriever.search.return_value = [
+        {
+            "id": 1,
+            "content": "Python is a programming language.",
+            "metadata": {"source": "intro.pdf", "doc_id": "abc"},
+            "similarity": 0.92,
+        },
+        {
+            "id": 2,
+            "content": "Python was created by Guido van Rossum.",
+            "metadata": {"source": "history.pdf", "doc_id": "def"},
+            "similarity": 0.85,
+        },
+    ]
+    return retriever
+
+
+@pytest.fixture
 def mock_document_store():
     store = MagicMock()
     store.search_similar.return_value = [
