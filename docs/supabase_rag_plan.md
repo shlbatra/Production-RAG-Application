@@ -423,31 +423,33 @@ Usage:
 
 ---
 
-## Phase 9: Deployment Updates
+## Phase 9: Deployment Updates ✅
 
 ### `scripts/setup-cloud-run.sh`
 
 Add to secrets loop:
 
 ```bash
-for SECRET in OPENAI_API_KEY LANGCHAIN_API_KEY SUPABASE_URL SUPABASE_SERVICE_KEY; do
+for SECRET in OPENAI_API_KEY LANGCHAIN_API_KEY SUPABASE_DATABASE_URL SUPABASE_SERVICE_KEY; do
 ```
+
+`SUPABASE_DATABASE_URL` contains the Postgres connection string with password. `SUPABASE_SERVICE_KEY` bypasses RLS. Both must be in Secret Manager.
+
+`SUPABASE_URL` is the public REST API endpoint — stored as a GitHub Actions repository variable (`vars.SUPABASE_URL`), not in Secret Manager.
 
 ### `.github/workflows/deploy-cloud-run.yml`
 
 Add to `--set-secrets`:
 
 ```
-SUPABASE_SERVICE_KEY=SUPABASE_SERVICE_KEY:latest
+SUPABASE_SERVICE_KEY=SUPABASE_SERVICE_KEY:latest,SUPABASE_DATABASE_URL=SUPABASE_DATABASE_URL:latest
 ```
 
 Add to `--set-env-vars`:
 
 ```
-SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_URL=${{ vars.SUPABASE_URL }}
 ```
-
-(`SUPABASE_URL` is a public endpoint, not secret. `SUPABASE_SERVICE_KEY` goes through Secret Manager.)
 
 ### Dockerfile
 
