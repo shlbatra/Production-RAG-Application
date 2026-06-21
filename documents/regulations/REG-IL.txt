@@ -1,0 +1,46 @@
+STATE OF ILLINOIS — INSURANCE CLAIMS REGULATIONS SUMMARY
+============================================================
+
+APPLICABLE STATUTES:
+215 ILCS 5/ Illinois Insurance Code and 50 Ill. Adm. Code 919
+
+CLAIM ACKNOWLEDGMENT:
+Per 50 Ill. Adm. Code 919.50(a), the insurer must acknowledge receipt
+of a claim within 15 business days. The acknowledgment must provide
+necessary claim forms and instructions.
+
+CLAIM INVESTIGATION:
+Per 50 Ill. Adm. Code 919.50(b), the insurer must begin a reasonable
+investigation within 15 business days of receiving a claim.
+
+CLAIM DECISION:
+Per 215 ILCS 5/154.6, the insurer must approve or deny a claim
+within 30 days after receipt of proof of loss.
+
+PROMPT PAYMENT:
+Per 215 ILCS 5/154.6, once approved, the insurer must pay the claim
+within 30 days after receiving satisfactory proof of loss.
+
+PENALTIES FOR DELAY:
+Per 215 ILCS 5/154.6(i), if payment is not made within the time
+specified, the insurer must pay interest at the rate of 9% per annum
+from the date the payment should have been made.
+
+BAD FAITH:
+Per 215 ILCS 5/155, an insured may bring action for unreasonable and
+vexatious delay in settling a claim. The court may award:
+- Reasonable attorney's fees
+- Costs of the action
+- An additional amount not to exceed 60% of the amount recovered
+
+WINTER WEATHER CLAIMS:
+Illinois experiences significant winter weather claims (frozen pipes,
+ice dams, weight of snow). Per standard HO-3 provisions:
+- Frozen pipes: covered if insured maintained heat or shut off water
+- Ice dam damage: covered for resulting water damage
+- Weight of snow: covered for structural damage
+
+LOSS OF USE:
+Per Illinois practice, loss of use (Coverage D) claims must be
+supported by documentation of actual additional living expenses.
+The insured must mitigate costs by choosing reasonable accommodations.

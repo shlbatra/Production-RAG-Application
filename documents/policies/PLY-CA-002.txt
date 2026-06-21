@@ -1,0 +1,121 @@
+======================================================================
+HOMEOWNERS POLICY — HO-3 SPECIAL FORM
+======================================================================
+
+POLICY NUMBER: PLY-CA-002
+CARRIER: Guidewire Mutual Insurance Company
+CARRIER ID: GWMI-001
+
+DECLARATIONS PAGE
+──────────────────────────────────────────────────────────────────────
+Named Insured:     James Chen
+Property Address:  892 Hillside Dr, Los Angeles, CA 90046
+Policy Period:     03/15/2024 to 03/15/2025
+Form Type:         HO-3 (Special Form — Open Perils on Dwelling)
+Line of Business:  Homeowners
+State:             CA
+
+COVERAGE SUMMARY
+──────────────────────────────────────────────────────────────────────
+Coverage A — Dwelling:                      $750,000
+Coverage B — Other Structures:              $75,000
+Coverage C — Personal Property:             $375,000
+Coverage D — Loss of Use:                   $150,000
+All-Peril Deductible:                       $5,000
+Hurricane/Named Storm Deductible:           N/A
+
+======================================================================
+SECTION I — COVERAGES
+======================================================================
+
+COVERAGE A — DWELLING
+We cover the dwelling on the residence premises shown in the Declarations,
+including structures attached to the dwelling. We also cover materials and
+supplies located on or next to the residence premises used to construct,
+alter, or repair the dwelling. Coverage A limit: $750,000.
+
+COVERAGE B — OTHER STRUCTURES
+We cover other structures on the residence premises set apart from the
+dwelling by clear space, including structures connected to the dwelling
+only by a fence, utility line, or similar connection. Limit: $75,000.
+
+COVERAGE C — PERSONAL PROPERTY
+We cover personal property owned or used by an insured while it is anywhere
+in the world. At your request, we will cover personal property owned by
+others while the property is on the part of the residence premises occupied
+by an insured. Limit: $375,000.
+
+COVERAGE D — LOSS OF USE
+If a covered peril makes the residence premises not fit to live in, we
+cover additional living expenses incurred by you so that your household
+can maintain its normal standard of living. Limit: $150,000.
+
+======================================================================
+SECTION I — EXCLUSIONS
+======================================================================
+
+We do not insure for loss caused directly or indirectly by any of the
+following. Such loss is excluded regardless of any other cause or event
+contributing concurrently or in any sequence to the loss.
+
+FLOOD EXCLUSION
+Flood, surface water, waves, tidal water, overflow of a body of water,
+or spray from any of these, whether or not driven by wind, is EXCLUDED.
+This includes flood damage caused by hurricane storm surge. Flood
+insurance is available separately through the National Flood Insurance
+Program (NFIP) or private flood insurers.
+
+EARTHQUAKE EXCLUSION
+Earthquake, including land shock waves or tremors before, during, or
+after a volcanic eruption, is EXCLUDED. Earth movement of any kind,
+including but not limited to earthquake, landslide, mudflow, mudslide,
+sinkhole, subsidence, or erosion is excluded.
+
+WEAR AND TEAR EXCLUSION
+Wear and tear, marring, deterioration, inherent vice, latent defect,
+mechanical breakdown, rust, mold (except as provided by endorsement),
+wet or dry rot is EXCLUDED.
+
+INTENTIONAL LOSS
+Any loss arising out of any act an insured commits or conspires to
+commit with the intent to cause a loss is EXCLUDED.
+
+NEGLECT
+Neglect meaning neglect of an insured to use all reasonable means to
+save and preserve property at and after the time of a loss is EXCLUDED.
+
+ORDINANCE OR LAW
+The enforcement of any ordinance or law regulating the construction,
+repair, or demolition of a building or other structure, unless
+specifically provided under this policy, is EXCLUDED.
+
+======================================================================
+ENDORSEMENTS
+======================================================================
+
+MOLD REMEDIATION ENDORSEMENT
+Endorsement Number: HO-MOLD-CA-2024
+We will pay up to $5,000 per occurrence for the cost of mold
+remediation that results from a covered peril. This includes the cost of
+testing, removal, and restoration necessitated by mold resulting from
+a covered water damage event. This endorsement does not cover mold
+resulting from long-term moisture, condensation, or maintenance neglect.
+Mold resulting from flood is excluded per the flood exclusion.
+
+WATER BACKUP AND SUMP DISCHARGE/OVERFLOW ENDORSEMENT
+Endorsement Number: HO-WBSD-CA-2024
+We will pay up to $10,000 for direct physical loss to
+covered property caused by water which backs up through sewers or drains,
+or which overflows or is discharged from a sump, sump pump, or related
+equipment. This endorsement does not cover flood as defined in the
+flood exclusion above.
+
+======================================================================
+CALIFORNIA-SPECIFIC PROVISIONS:
+- Earthquake coverage: EXCLUDED. Available separately through CEA (California Earthquake Authority)
+- Brush fire zone: Property is in a designated wildfire risk area
+- Fair Plan: This policy is NOT a FAIR Plan policy
+- CA § 790.03: Unfair claims settlement practices apply
+- Mandatory offer of earthquake coverage was made and declined by insured
+======================================================================
+END OF POLICY — PLY-CA-002

@@ -1,0 +1,43 @@
+STATE OF NEW YORK — INSURANCE CLAIMS REGULATIONS SUMMARY
+============================================================
+
+APPLICABLE STATUTES:
+New York Insurance Law and NY Regulation 64 (11 NYCRR 216)
+
+CLAIM ACKNOWLEDGMENT:
+Per NY Regulation 64 § 216.4(a), the insurer must acknowledge receipt
+of a claim within 15 business days. The acknowledgment must provide
+the name of the claims examiner handling the matter.
+
+CLAIM INVESTIGATION:
+Per NY Regulation 64 § 216.6(a), the insurer must complete its
+investigation within 30 calendar days of receiving proof of loss,
+unless the investigation cannot reasonably be completed within that time.
+
+CLAIM DECISION:
+Per NY Insurance Law § 3408(a), the insurer must make a determination
+on the claim within 30 business days after proof of loss is received.
+
+PROMPT PAYMENT:
+Per NY Regulation 64 § 216.6(d), payment must be made within 35
+business days of proof of loss being received, provided the claim
+has been approved.
+
+BAD FAITH:
+New York does not have a specific bad faith statute for first-party
+claims. However, courts have recognized an implied covenant of good
+faith and fair dealing. Claimants may bring action for consequential
+damages under certain circumstances.
+
+NAMED STORM PROVISIONS:
+Per NY Insurance Law § 3425:
+- Named storm deductible may not exceed 5% of Coverage A
+- Named storm deductible applies only when the National Weather Service
+  declares a hurricane warning or watch for the area
+- Standard deductible applies to all other wind losses
+
+WATER DAMAGE:
+Per NY Regulation 64, insurers must clearly disclose any sublimits
+for water damage, particularly for below-grade (basement) units.
+The policy must clearly state whether sewer backup is covered
+and any applicable sublimits.

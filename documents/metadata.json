@@ -1,0 +1,232 @@
+{
+  "policies/PLY-FL-001.txt": {
+    "doc_type": "policy",
+    "state": "FL",
+    "carrier_id": "GWMI-001",
+    "lob": "homeowners",
+    "policy_number": "PLY-FL-001",
+    "claim_id": null
+  },
+  "policies/PLY-CA-002.txt": {
+    "doc_type": "policy",
+    "state": "CA",
+    "carrier_id": "GWMI-001",
+    "lob": "homeowners",
+    "policy_number": "PLY-CA-002",
+    "claim_id": null
+  },
+  "policies/PLY-TX-003.txt": {
+    "doc_type": "policy",
+    "state": "TX",
+    "carrier_id": "GWMI-001",
+    "lob": "homeowners",
+    "policy_number": "PLY-TX-003",
+    "claim_id": null
+  },
+  "policies/PLY-NY-004.txt": {
+    "doc_type": "policy",
+    "state": "NY",
+    "carrier_id": "GWMI-001",
+    "lob": "homeowners",
+    "policy_number": "PLY-NY-004",
+    "claim_id": null
+  },
+  "policies/PLY-IL-005.txt": {
+    "doc_type": "policy",
+    "state": "IL",
+    "carrier_id": "GWMI-001",
+    "lob": "homeowners",
+    "policy_number": "PLY-IL-005",
+    "claim_id": null
+  },
+  "claims/CLM-FL-2024-001.txt": {
+    "doc_type": "claim",
+    "state": "FL",
+    "carrier_id": "GWMI-001",
+    "lob": "homeowners",
+    "policy_number": "PLY-FL-001",
+    "claim_id": "CLM-FL-2024-001",
+    "date_of_loss": "03/15/2024",
+    "peril": "water_damage",
+    "estimated_amount": 28500
+  },
+  "claims/CLM-FL-2024-002.txt": {
+    "doc_type": "claim",
+    "state": "FL",
+    "carrier_id": "GWMI-001",
+    "lob": "homeowners",
+    "policy_number": "PLY-FL-001",
+    "claim_id": "CLM-FL-2024-002",
+    "date_of_loss": "06/10/2024",
+    "peril": "wind",
+    "estimated_amount": 15200
+  },
+  "claims/CLM-CA-2024-003.txt": {
+    "doc_type": "claim",
+    "state": "CA",
+    "carrier_id": "GWMI-001",
+    "lob": "homeowners",
+    "policy_number": "PLY-CA-002",
+    "claim_id": "CLM-CA-2024-003",
+    "date_of_loss": "04/22/2024",
+    "peril": "fire",
+    "estimated_amount": 185000
+  },
+  "claims/CLM-CA-2024-004.txt": {
+    "doc_type": "claim",
+    "state": "CA",
+    "carrier_id": "GWMI-001",
+    "lob": "homeowners",
+    "policy_number": "PLY-CA-002",
+    "claim_id": "CLM-CA-2024-004",
+    "date_of_loss": "07/30/2024",
+    "peril": "theft",
+    "estimated_amount": 22000
+  },
+  "claims/CLM-TX-2024-005.txt": {
+    "doc_type": "claim",
+    "state": "TX",
+    "carrier_id": "GWMI-001",
+    "lob": "homeowners",
+    "policy_number": "PLY-TX-003",
+    "claim_id": "CLM-TX-2024-005",
+    "date_of_loss": "05/18/2024",
+    "peril": "water_damage",
+    "estimated_amount": 42000
+  },
+  "claims/CLM-TX-2024-006.txt": {
+    "doc_type": "claim",
+    "state": "TX",
+    "carrier_id": "GWMI-001",
+    "lob": "homeowners",
+    "policy_number": "PLY-TX-003",
+    "claim_id": "CLM-TX-2024-006",
+    "date_of_loss": "08/05/2024",
+    "peril": "wind",
+    "estimated_amount": 31500
+  },
+  "claims/CLM-NY-2024-007.txt": {
+    "doc_type": "claim",
+    "state": "NY",
+    "carrier_id": "GWMI-001",
+    "lob": "homeowners",
+    "policy_number": "PLY-NY-004",
+    "claim_id": "CLM-NY-2024-007",
+    "date_of_loss": "10/12/2024",
+    "peril": "water_damage",
+    "estimated_amount": 18500
+  },
+  "claims/CLM-NY-2024-008.txt": {
+    "doc_type": "claim",
+    "state": "NY",
+    "carrier_id": "GWMI-001",
+    "lob": "homeowners",
+    "policy_number": "PLY-NY-004",
+    "claim_id": "CLM-NY-2024-008",
+    "date_of_loss": "11/28/2024",
+    "peril": "theft",
+    "estimated_amount": 12800
+  },
+  "claims/CLM-IL-2024-009.txt": {
+    "doc_type": "claim",
+    "state": "IL",
+    "carrier_id": "GWMI-001",
+    "lob": "homeowners",
+    "policy_number": "PLY-IL-005",
+    "claim_id": "CLM-IL-2024-009",
+    "date_of_loss": "01/22/2024",
+    "peril": "fire",
+    "estimated_amount": 95000
+  },
+  "claims/CLM-IL-2024-010.txt": {
+    "doc_type": "claim",
+    "state": "IL",
+    "carrier_id": "GWMI-001",
+    "lob": "homeowners",
+    "policy_number": "PLY-IL-005",
+    "claim_id": "CLM-IL-2024-010",
+    "date_of_loss": "12/05/2024",
+    "peril": "liability",
+    "estimated_amount": 35000
+  },
+  "regulations/REG-FL.txt": {
+    "doc_type": "regulation",
+    "state": "FL",
+    "carrier_id": null,
+    "lob": null,
+    "policy_number": null,
+    "claim_id": null
+  },
+  "regulations/REG-CA.txt": {
+    "doc_type": "regulation",
+    "state": "CA",
+    "carrier_id": null,
+    "lob": null,
+    "policy_number": null,
+    "claim_id": null
+  },
+  "regulations/REG-TX.txt": {
+    "doc_type": "regulation",
+    "state": "TX",
+    "carrier_id": null,
+    "lob": null,
+    "policy_number": null,
+    "claim_id": null
+  },
+  "regulations/REG-NY.txt": {
+    "doc_type": "regulation",
+    "state": "NY",
+    "carrier_id": null,
+    "lob": null,
+    "policy_number": null,
+    "claim_id": null
+  },
+  "regulations/REG-IL.txt": {
+    "doc_type": "regulation",
+    "state": "IL",
+    "carrier_id": null,
+    "lob": null,
+    "policy_number": null,
+    "claim_id": null
+  },
+  "adjuster_notes/NOTE-001.txt": {
+    "doc_type": "adjuster_note",
+    "state": "FL",
+    "carrier_id": "GWMI-001",
+    "lob": "homeowners",
+    "policy_number": "PLY-FL-001",
+    "claim_id": "CLM-FL-2024-001"
+  },
+  "adjuster_notes/NOTE-002.txt": {
+    "doc_type": "adjuster_note",
+    "state": "CA",
+    "carrier_id": "GWMI-001",
+    "lob": "homeowners",
+    "policy_number": "PLY-CA-002",
+    "claim_id": "CLM-CA-2024-003"
+  },
+  "adjuster_notes/NOTE-003.txt": {
+    "doc_type": "adjuster_note",
+    "state": "TX",
+    "carrier_id": "GWMI-001",
+    "lob": "homeowners",
+    "policy_number": "PLY-TX-003",
+    "claim_id": "CLM-TX-2024-005"
+  },
+  "adjuster_notes/NOTE-004.txt": {
+    "doc_type": "adjuster_note",
+    "state": "NY",
+    "carrier_id": "GWMI-001",
+    "lob": "homeowners",
+    "policy_number": "PLY-NY-004",
+    "claim_id": "CLM-NY-2024-007"
+  },
+  "adjuster_notes/NOTE-005.txt": {
+    "doc_type": "adjuster_note",
+    "state": "IL",
+    "carrier_id": "GWMI-001",
+    "lob": "homeowners",
+    "policy_number": "PLY-IL-005",
+    "claim_id": "CLM-IL-2024-009"
+  }
+}

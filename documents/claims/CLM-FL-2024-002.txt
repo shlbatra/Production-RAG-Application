@@ -1,0 +1,33 @@
+CLAIM REPORT — WIND DAMAGE
+
+Claim ID: CLM-FL-2024-002
+Policy: PLY-FL-001
+Date of Loss: 06/10/2024
+Date Reported: 06/11/2024
+Peril: Wind Damage — Tropical Storm
+
+LOSS DESCRIPTION:
+Tropical Storm Alberto caused wind damage to the insured property on
+June 10, 2024. Sustained winds of approximately 55 mph with gusts to
+70 mph impacted the Fort Lauderdale area. Named storm was declared by
+the National Hurricane Center.
+
+DAMAGE DETAILS:
+- Roof: 12 shingles displaced, 3 sections of ridge cap damaged
+- Soffit: detached along north-facing eave (20 linear feet)
+- Fence: wooden privacy fence (40 ft section) blown down
+- Screen enclosure: aluminum frame bent, 4 panels torn
+- Tree limb fell on detached garage (minor roof dent)
+
+ESTIMATED REPAIR COST: $15,200
+- Roof repairs: $6,500
+- Soffit repair: $2,200
+- Fence replacement: $3,500
+- Screen enclosure: $2,000
+- Garage repair: $1,000
+
+NOTE: This is a named storm event. Hurricane deductible of 2% of
+Coverage A ($7,000) applies per FL policy provisions.
+
+ADJUSTER ASSIGNED: Thomas Rivera
+STATUS: Open
