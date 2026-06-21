@@ -52,6 +52,10 @@ class HybridRetriever:
         )
         bm25_results = self._store.full_text_search(query=query, top_k=top_k)
 
+        # RRF: score = sum of 1/(k + rank) across retrievers. Docs found by both
+        # retrievers accumulate a higher score than docs found by only one.
+        # k=60 (paper default) flattens the rank curve so presence in both lists
+        # matters more than exact position in either list.
         scores: dict[int, float] = {}
         docs: dict[int, dict] = {}
 
