@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     # Langsmith
     langchain_tracing_v2: bool = True
     langchain_api_key: str = ""
-    langchain_project: str = "production-api"
+    langchain_project: str = "Prod RAG Project"
 
     # Supabase
     supabase_url: str = ""
