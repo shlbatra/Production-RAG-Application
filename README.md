@@ -5,7 +5,7 @@ A production-ready Chat/RAG API built with **FastAPI + LangGraph + OpenAI**, fea
 ## Architecture
 
 ```
-Client Request → Rate Limiter → Security (injection + PII) → Cache → LangGraph Agent → Output Validation → Metrics/Logging → JSON Response
+Client Request → Rate Limiter → Security (injection + PII) → Cache → Retrieval (similarity | BM25 | hybrid) → LangGraph Agent → Output Validation → Metrics/Logging → JSON Response
 ```
 
 ### Request Flow
@@ -17,27 +17,52 @@ Client Request → Rate Limiter → Security (injection + PII) → Cache → Lan
 5. **Output Validation** — PII leak detection and harmful content filtering on LLM responses
 6. **Metrics + Logging** — Structured JSON logs (ELK/Datadog-ready), request count, latency, token usage, error and cache hit rates
 
+### Retrieval Strategies
+
+The system supports three retrieval strategies, configurable via `RAG_RETRIEVAL_STRATEGY`:
+
+| Strategy | How it works | Best for |
+|---|---|---|
+| `similarity` | Cosine similarity via pgvector embeddings | Semantic/intent-based queries |
+| `bm25` | Postgres full-text search (tsvector/tsquery) | Exact keyword/term matching |
+| `hybrid` (default) | RRF fusion of similarity + BM25 | Mixed queries — combines semantic understanding with exact term matching |
+
+Strategies follow a `RetrievalStrategy` Protocol (same pattern as `DocumentParser` and `ChunkingStrategy`), so new strategies can be added without touching existing code.
+
 ### LangGraph Agent Flow
 
 ```
-START → process (primary model)
-           ├── success → END
-           └── fail → fallback (secondary model)
-                          ├── success → END
-                          └── fail → error (graceful message) → END
+START → retrieve (RetrievalStrategy) → process (primary model)
+                                           ├── success → END
+                                           └── fail → fallback (secondary model)
+                                                          ├── success → END
+                                                          └── fail → error (graceful message) → END
 ```
 
 ## Project Structure
 
 ```
 app/
-├── main.py          # FastAPI app, endpoints, lifespan, rate limiting
-├── config.py        # Pydantic-settings validated environment config
-├── models.py        # Request/response Pydantic models
-├── agent.py         # LangGraph agent with retry + fallback
-├── security.py      # Input sanitization, PII detection/masking, output validation
-├── cache.py         # In-memory response cache with TTL
-└── monitoring.py    # Structured JSON logging, metrics collector, request timer
+├── main.py            # FastAPI app, endpoints, lifespan, rate limiting
+├── config.py          # Pydantic-settings validated environment config
+├── models.py          # Request/response Pydantic models
+├── agent.py           # LangGraph agent with retry + fallback
+├── retrieval.py       # RetrievalStrategy Protocol (similarity, BM25, hybrid)
+├── document_store.py  # pgvector vector store + full-text search over Supabase Postgres
+├── document_parser.py # Document parsing Protocol (PDF, text)
+├── chunking.py        # Chunking strategy Protocol (recursive text splitter)
+├── ingestion.py       # Document ingestion pipeline (parse → chunk → embed → store)
+├── security.py        # Input sanitization, PII detection/masking, output validation
+├── cache.py           # In-memory response cache with TTL
+└── monitoring.py      # Structured JSON logging, metrics collector, request timer
+
+scripts/
+├── ingest.py          # CLI for batch document ingestion
+└── generate_documents.py  # Generate sample insurance documents
+
+supabase/migrations/
+├── 001_create_documents.sql      # Documents table, pgvector HNSW index, match_documents RPC
+└── 002_add_full_text_search.sql  # tsvector column, GIN index, bm25_search RPC
 ```
 
 ## Features
@@ -47,6 +72,9 @@ app/
 | LangSmith Tracing | `@traceable` decorators | Every request traced with metadata |
 | Input Sanitization | `security.py` | Blocks prompt injection attempts |
 | PII Detection/Masking | `security.py` | Redacts emails, SSNs, phone numbers, credit cards |
+| Retrieval Strategies | `retrieval.py` | Similarity, BM25, and hybrid (RRF) search |
+| Document Ingestion | `ingestion.py` | Parse → chunk → embed → store pipeline |
+| Document Parsing | `document_parser.py` | Protocol-based PDF and text parsing |
 | Error Handling + Retries | `agent.py` | Primary → fallback model with graceful degradation |
 | Response Caching | `cache.py` | In-memory cache for duplicate calls |
 | Rate Limiting | `main.py` + slowapi | Per-IP throttling |
@@ -86,11 +114,9 @@ uv run uvicorn app.main:app --reload --port 8000
 2. Run the SQL migration against your Supabase database:
 
 ```bash
-# Using individual connection flags
-psql -h db.<project-ref>.supabase.co -p 5432 -d postgres -U postgres -f supabase/migrations/001_create_documents.sql
-
-# Or using the full connection string
+# Apply both migrations
 psql -d "$SUPABASE_DATABASE_URL" -f supabase/migrations/001_create_documents.sql
+psql -d "$SUPABASE_DATABASE_URL" -f supabase/migrations/002_add_full_text_search.sql
 ```
 
 3. Add `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, and `SUPABASE_DATABASE_URL` to your `.env`
@@ -157,6 +183,9 @@ See `.env.example` for the full list. Key variables:
 | `LANGCHAIN_API_KEY` | LangSmith API key | (optional) |
 | `PRIMARY_MODEL` | Primary LLM model | `gpt-4.1-mini` |
 | `FALLBACK_MODEL` | Fallback LLM model | `gpt-4.1-nano` |
+| `RAG_RETRIEVAL_STRATEGY` | Retrieval strategy | `hybrid` |
+| `RAG_TOP_K` | Number of chunks to retrieve | `5` |
+| `RAG_SIMILARITY_THRESHOLD` | Minimum similarity score | `0.7` |
 | `RATE_LIMIT` | Rate limit per IP | `20/minute` |
 | `CACHE_TTL_SECONDS` | Cache entry lifetime | `300` |
 
@@ -165,6 +194,9 @@ See `.env.example` for the full list. Key variables:
 | Method | Path | Description |
 |---|---|---|
 | `POST` | `/chat` | Main chat endpoint |
+| `POST` | `/documents` | Upload a document for RAG ingestion |
+| `GET` | `/documents` | List all ingested documents |
+| `DELETE` | `/documents/{doc_id}` | Delete a document and its chunks |
 | `GET` | `/health` | Health check for Docker/K8s |
 | `GET` | `/metrics` | Application metrics |
 | `GET` | `/cache/stats` | Cache performance statistics |
