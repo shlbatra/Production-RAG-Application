@@ -6,17 +6,16 @@ Retrieval is currently hardcoded to pgvector cosine similarity in `DocumentStore
 
 ## Files to Create / Modify
 
-| # | File | Action | Status |
-|---|---|---|---|
-| 1 | `app/retrieval.py` | **New** — Protocol, 3 strategies, factory | Done (PR #22) |
-| 1 | `app/config.py` | Modify — add `rag_retrieval_strategy` setting | Done (PR #22) |
-| 1 | `app/document_store.py` | Modify — add `full_text_search()` | Done (PR #22) |
-| 1 | `tests/test_retrieval.py` | **New** — tests for all 3 strategies | Done (PR #22) |
-| 2 | `supabase/migrations/002_add_full_text_search.sql` | **New** — GIN index + `bm25_search()` RPC | |
-| 3 | `app/document_store.py` | Modify — update `insert_chunks()` to populate `search_vector` | |
-| 4 | `app/agent.py` | Modify — use `RetrievalStrategy` instead of `document_store.search_similar()` | |
-| 4 | `app/main.py` | Modify — build retrieval strategy in lifespan, pass to agent | |
-| 4 | `.env.example` | Modify — add `RAG_RETRIEVAL_STRATEGY` | |
+| File | Action |
+|---|---|
+| `app/retrieval.py` | **New** — Protocol, 3 strategies, factory |
+| `app/document_store.py` | Modify — add `full_text_search()`, update `insert_chunks()` to populate `search_vector` |
+| `app/agent.py` | Modify — use `RetrievalStrategy` instead of `document_store.search_similar()` |
+| `app/config.py` | Modify — add `rag_retrieval_strategy` setting |
+| `app/main.py` | Modify — build retrieval strategy in lifespan, pass to agent |
+| `supabase/migrations/002_add_full_text_search.sql` | **New** — GIN index + `bm25_search()` RPC |
+| `tests/test_retrieval.py` | **New** — tests for all 3 strategies |
+| `.env.example` | Modify — add `RAG_RETRIEVAL_STRATEGY` |
 
 ---
 
