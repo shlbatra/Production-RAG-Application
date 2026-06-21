@@ -20,8 +20,10 @@ def settings():
 
 @pytest.fixture
 def store(settings):
-    with patch("app.document_store.OpenAIEmbeddings"), \
-         patch("app.document_store.ThreadedConnectionPool"):
+    with (
+        patch("app.document_store.OpenAIEmbeddings"),
+        patch("app.document_store.ThreadedConnectionPool"),
+    ):
         return DocumentStore(settings)
 
 

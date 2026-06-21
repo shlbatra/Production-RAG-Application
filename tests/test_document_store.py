@@ -9,8 +9,10 @@ from app.document_store import DocumentStore
 # DocumentStore.__init__
 class TestInit:
     def test_stores_dsn_and_defaults(self, settings):
-        with patch("app.document_store.OpenAIEmbeddings") as mock_emb, \
-             patch("app.document_store.ThreadedConnectionPool") as mock_pool:
+        with (
+            patch("app.document_store.OpenAIEmbeddings") as mock_emb,
+            patch("app.document_store.ThreadedConnectionPool") as mock_pool,
+        ):
             store = DocumentStore(settings)
 
         assert store._dsn == settings.supabase_database_url
@@ -60,9 +62,7 @@ class TestInsertChunks:
             },
         ]
 
-        with patch(
-            "app.document_store.psycopg2.extras.execute_values"
-        ) as mock_exec:
+        with patch("app.document_store.psycopg2.extras.execute_values") as mock_exec:
             result = store.insert_chunks(chunks)
 
         assert result == 2
@@ -78,9 +78,7 @@ class TestInsertChunks:
             for i in range(150)
         ]
 
-        with patch(
-            "app.document_store.psycopg2.extras.execute_values"
-        ) as mock_exec:
+        with patch("app.document_store.psycopg2.extras.execute_values") as mock_exec:
             result = store.insert_chunks(chunks)
 
         assert result == 150
@@ -90,9 +88,7 @@ class TestInsertChunks:
         conn, _ = mock_conn
         store._pool.getconn.return_value = conn
 
-        with patch(
-            "app.document_store.psycopg2.extras.execute_values"
-        ) as mock_exec:
+        with patch("app.document_store.psycopg2.extras.execute_values") as mock_exec:
             result = store.insert_chunks([])
 
         assert result == 0
