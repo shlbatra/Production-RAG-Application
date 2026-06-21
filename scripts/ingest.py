@@ -4,8 +4,10 @@ CLI script for bulk document ingestion into the RAG vector store.
 Usage:
     uv run python scripts/ingest.py ./data/report.pdf        # single file
     uv run python scripts/ingest.py ./data/pdfs/              # directory (recursive)
+    uv run python scripts/ingest.py ./documents/ --metadata ./documents/metadata.json
 """
 
+import json
 import sys
 from pathlib import Path
 
@@ -13,7 +15,7 @@ from app.config import get_settings
 from app.document_store import DocumentStore
 from app.ingestion import ingest_document
 
-SUPPORTED_EXTENSIONS = {".pdf"}
+SUPPORTED_EXTENSIONS = {".pdf", ".txt"}
 
 
 def find_files(path: Path) -> list[Path]:
@@ -38,12 +40,36 @@ def find_files(path: Path) -> list[Path]:
     sys.exit(1)
 
 
+def load_metadata(metadata_path: Path, base_dir: Path) -> dict:
+    """Load metadata.json keyed by relative path from the documents root."""
+    with open(metadata_path) as f:
+        raw = json.load(f)
+    result = {}
+    for rel_path, meta in raw.items():
+        abs_path = (base_dir / rel_path).resolve()
+        result[str(abs_path)] = meta
+    return result
+
+
 def main() -> None:
-    if len(sys.argv) != 2:
-        print("Usage: uv run python scripts/ingest.py <file_or_directory>")
+    args = sys.argv[1:]
+    metadata_path = None
+
+    if "--metadata" in args:
+        idx = args.index("--metadata")
+        if idx + 1 >= len(args):
+            print("Error: --metadata requires a path argument")
+            sys.exit(1)
+        metadata_path = Path(args[idx + 1])
+        args = args[:idx] + args[idx + 2 :]
+
+    if len(args) != 1:
+        print(
+            "Usage: uv run python scripts/ingest.py <file_or_directory> [--metadata metadata.json]"
+        )
         sys.exit(1)
 
-    target = Path(sys.argv[1])
+    target = Path(args[0])
 
     settings = get_settings()
     if not settings.rag_enabled:
@@ -53,6 +79,11 @@ def main() -> None:
     document_store = DocumentStore(settings)
     files = find_files(target)
 
+    file_metadata = {}
+    if metadata_path:
+        base_dir = metadata_path.parent
+        file_metadata = load_metadata(metadata_path, base_dir)
+
     print(f"Found {len(files)} file(s) to ingest\n")
 
     succeeded = 0
@@ -60,9 +91,14 @@ def main() -> None:
 
     for file_path in files:
         file_bytes = file_path.read_bytes()
+        extra_metadata = file_metadata.get(str(file_path.resolve()), {})
         try:
             result = ingest_document(
-                file_bytes, file_path.name, document_store, settings
+                file_bytes,
+                file_path.name,
+                document_store,
+                settings,
+                extra_metadata=extra_metadata,
             )
             print(
                 f"  {result['filename']}: {result['chunks_stored']} chunks (doc_id: {result['doc_id']})"

@@ -1,0 +1,49 @@
+STATE OF TEXAS — INSURANCE CLAIMS REGULATIONS SUMMARY
+============================================================
+
+APPLICABLE STATUTES:
+Texas Insurance Code and Texas Administrative Code Title 28
+
+CLAIM ACKNOWLEDGMENT:
+Per TX Insurance Code § 542.055, the insurer must acknowledge receipt
+of a claim within 15 calendar days. This acknowledgment must be in writing.
+
+CLAIM INVESTIGATION:
+Per TX Insurance Code § 542.055(b), the insurer must commence
+investigation of the claim no later than 15 days after receiving
+notice of the claim.
+
+CLAIM DECISION:
+Per TX Insurance Code § 542.056, the insurer must accept or reject
+the claim no later than 15 business days after receiving all items,
+statements, and forms reasonably requested.
+
+PROMPT PAYMENT:
+Per TX Insurance Code § 542.057, if the insurer notifies the claimant
+that the claim is accepted (in whole or part), the insurer must pay
+the claim within 5 business days of notification.
+
+PENALTIES FOR DELAY:
+Per TX Insurance Code § 542.060, if an insurer violates the prompt
+payment statutes, the insurer is liable for:
+- The amount of the claim
+- 18% annual interest on the claim amount
+- Reasonable attorney's fees
+
+BAD FAITH:
+Per TX Insurance Code § 541.060, an insured may bring action for
+unfair settlement practices. Damages may include actual damages,
+court costs, attorney's fees, and up to three times actual damages
+if the violation was committed knowingly.
+
+HAIL/WIND CLAIMS:
+Per TX Insurance Code § 4002.052 (TWIA):
+- TWIA policies have specific wind/hail provisions
+- Non-TWIA policies: standard homeowner provisions apply
+- Separate wind/hail deductible is common in Texas policies
+
+MOLD COVERAGE:
+Mold coverage in Texas is typically offered as an optional endorsement.
+Per the Texas Department of Insurance, mold liability caps were
+established to control costs. Insurers are not required to include
+mold coverage in standard homeowner policies.

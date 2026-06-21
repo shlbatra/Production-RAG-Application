@@ -1,0 +1,31 @@
+ADJUSTER FIELD NOTES — CLM-TX-2024-005
+Date of Inspection: 05/21/2024
+Adjuster: Michael Torres
+
+INSPECTION SUMMARY:
+Inspected water damage at 1205 Lone Star Pkwy, Houston. The insured
+Robert Williams was present. Significant water damage from a failed
+hot water supply line in the master bathroom wall.
+
+OBSERVATIONS:
+1. Supply line failure point is clearly visible — the PEX line split at a
+   connection fitting. This is a sudden and accidental failure.
+2. Water damage is extensive due to the 8-hour duration of the leak.
+   The insured was at work and did not discover the issue until returning.
+3. Mold was discovered in the wall cavity during demolition. Based on
+   growth patterns, the mold appears to have developed after the water
+   event (consistent with 3-day timeline).
+
+CRITICAL COVERAGE ISSUE:
+Policy PLY-TX-003 does NOT include the optional mold remediation
+endorsement. The estimated mold remediation cost is $3,000.
+Per Texas regulations, mold coverage is optional and this insured
+did not purchase it. The mold portion of this claim ($3,000) should
+be DENIED. All other water damage repairs ($39,000) are covered.
+
+FOUNDATION NOTE: Moisture detected under the slab. Foundation engineer
+assessment has been ordered. If foundation damage is found to be
+sudden and accidental (caused by this event), it would be covered.
+
+RECOMMENDATION: Approve $39,000 for water damage repairs. Deny $3,000
+for mold remediation (no endorsement). Await foundation assessment.

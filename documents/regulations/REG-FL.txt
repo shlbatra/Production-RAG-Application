@@ -1,0 +1,44 @@
+STATE OF FLORIDA — INSURANCE CLAIMS REGULATIONS SUMMARY
+============================================================
+
+APPLICABLE STATUTES:
+Florida Statutes Title XXXVII — Insurance, Chapter 627
+
+CLAIM ACKNOWLEDGMENT:
+Per FL § 627.426(2), the insurer must acknowledge receipt of a claim
+communication within 14 calendar days.
+
+CLAIM INVESTIGATION:
+Per FL § 627.426(3), the insurer must begin investigation of a claim
+within 10 business days of receiving proof of loss.
+
+CLAIM DECISION:
+Per FL § 627.426(4), the insurer must pay or deny a claim within
+90 calendar days after receiving the proof of loss, unless the failure
+to pay is caused by factors beyond the insurer's control.
+
+PROMPT PAYMENT:
+Per FL § 627.4265, when an insurer makes a payment on a claim, it must
+be paid within 20 calendar days after the date the insurer received
+the proof of loss.
+
+BAD FAITH:
+Per FL § 624.155, an insured may bring a civil action against an insurer
+for bad faith failure to settle claims. The insured must file a Civil
+Remedy Notice with the Department of Financial Services and allow
+60 days for the insurer to cure the violation.
+
+HURRICANE CLAIMS:
+Per FL § 627.70132, for claims arising from a hurricane:
+- Insurer must provide acknowledgment within 14 days
+- Must begin investigation within 7 days of assignment
+- Must provide written decision within 90 days
+
+ASSIGNMENT OF BENEFITS:
+Per FL § 627.7152, an AOB agreement must be in writing, may not exceed
+the coverage limits, and the assignee must provide a copy to the insurer
+within 3 business days.
+
+MEDIATION:
+Per FL § 627.7015, either party may request mediation through the
+Department of Financial Services for disputed claims.
