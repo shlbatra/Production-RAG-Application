@@ -66,12 +66,32 @@ def mock_settings():
 def mock_doc_store():
     store = MagicMock()
     store.search_similar.return_value = [
-        {"id": 1, "content": "doc A", "metadata": {"source": "a.pdf"}, "similarity": 0.95},
-        {"id": 2, "content": "doc B", "metadata": {"source": "b.pdf"}, "similarity": 0.80},
+        {
+            "id": 1,
+            "content": "doc A",
+            "metadata": {"source": "a.pdf"},
+            "similarity": 0.95,
+        },
+        {
+            "id": 2,
+            "content": "doc B",
+            "metadata": {"source": "b.pdf"},
+            "similarity": 0.80,
+        },
     ]
     store.full_text_search.return_value = [
-        {"id": 2, "content": "doc B", "metadata": {"source": "b.pdf"}, "similarity": 0.9},
-        {"id": 3, "content": "doc C", "metadata": {"source": "c.pdf"}, "similarity": 0.7},
+        {
+            "id": 2,
+            "content": "doc B",
+            "metadata": {"source": "b.pdf"},
+            "similarity": 0.9,
+        },
+        {
+            "id": 3,
+            "content": "doc C",
+            "metadata": {"source": "c.pdf"},
+            "similarity": 0.7,
+        },
     ]
     return store
 
