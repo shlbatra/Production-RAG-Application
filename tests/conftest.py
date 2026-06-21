@@ -13,12 +13,15 @@ def settings():
     s.openai_api_key = "test-key"
     s.rag_top_k = 5
     s.rag_similarity_threshold = 0.7
+    s.db_pool_min_conn = 2
+    s.db_pool_max_conn = 10
     return s
 
 
 @pytest.fixture
 def store(settings):
-    with patch("app.document_store.OpenAIEmbeddings"):
+    with patch("app.document_store.OpenAIEmbeddings"), \
+         patch("app.document_store.ThreadedConnectionPool"):
         return DocumentStore(settings)
 
 
