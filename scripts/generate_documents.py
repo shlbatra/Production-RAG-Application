@@ -2,7 +2,6 @@
 
 import json
 import os
-import sys
 
 BASE_DIR = os.path.join(os.path.dirname(__file__), "..", "documents")
 DIRS = ["policies", "claims", "regulations", "adjuster_notes"]
