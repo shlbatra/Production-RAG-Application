@@ -31,3 +31,8 @@ BEGIN
     LIMIT match_count;
 END;
 $$;
+
+-- Backfill search_vector for already-ingested documents
+UPDATE documents
+SET search_vector = to_tsvector('english', content)
+WHERE search_vector IS NULL;
