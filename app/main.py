@@ -36,7 +36,6 @@ from app.monitoring import get_logger, MetricsCollector, RequestTimer
 from app.agent import ProductionAgent
 from app.document_store import DocumentStore
 from app.ingestion import ingest_document
-from app.retrieval import get_retriever
 
 load_dotenv()
 
@@ -76,18 +75,13 @@ async def lifespan(app: FastAPI):
     security = SecurityPipeline()
     cache = ResponseCache(ttl_seconds=settings.cache_ttl_seconds)
     metrics = MetricsCollector()
-    retriever = None
     if settings.rag_enabled:
         document_store = DocumentStore(settings)
-        retriever = get_retriever(settings, document_store)
-        logger.info(
-            "Supabase document store initialized (RAG enabled, strategy=%s)",
-            settings.rag_retrieval_strategy,
-        )
+        logger.info("Supabase document store initialized (RAG enabled)")
     else:
         logger.info("Supabase not configured (RAG disabled)")
 
-    agent = ProductionAgent(retriever=retriever)
+    agent = ProductionAgent(document_store=document_store)
 
     logger.info("All components initialized. Ready to serve requests")
 

@@ -63,31 +63,8 @@ class DocumentStore:
                         ],
                     )
                     inserted += len(batch)
-                cur.execute(
-                    "UPDATE documents SET search_vector = to_tsvector('english', content) "
-                    "WHERE search_vector IS NULL"
-                )
         logger.info("Inserted %d chunks", inserted)
         return inserted
-
-    def full_text_search(self, query: str, top_k: int | None = None) -> list[dict]:
-        """Keyword-based search using Postgres tsvector/tsquery via bm25_search RPC."""
-        top_k = top_k or self._top_k
-        with self._conn() as conn:
-            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-                cur.execute(
-                    "SELECT * FROM bm25_search(%s, %s)",
-                    (query, top_k),
-                )
-                results = [dict(row) for row in cur.fetchall()]
-
-        if results:
-            max_score = max(r["similarity"] for r in results)
-            if max_score > 0:
-                for r in results:
-                    r["similarity"] = round(r["similarity"] / max_score, 4)
-
-        return results
 
     def search_similar(
         self,

@@ -3,7 +3,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from app.document_store import DocumentStore
-from app.retrieval import RetrievalStrategy
 
 
 @pytest.fixture
@@ -81,23 +80,3 @@ def mock_document_store():
         },
     ]
     return store
-
-
-@pytest.fixture
-def mock_retriever():
-    retriever = MagicMock(spec=RetrievalStrategy)
-    retriever.search.return_value = [
-        {
-            "id": 1,
-            "content": "Python is a programming language.",
-            "metadata": {"source": "intro.pdf", "doc_id": "abc"},
-            "similarity": 0.92,
-        },
-        {
-            "id": 2,
-            "content": "Python was created by Guido van Rossum.",
-            "metadata": {"source": "history.pdf", "doc_id": "def"},
-            "similarity": 0.85,
-        },
-    ]
-    return retriever

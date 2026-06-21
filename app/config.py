@@ -31,7 +31,6 @@ class Settings(BaseSettings):
     rag_chunking_strategy: str = "recursive"
     rag_chunk_size: int = 1000
     rag_chunk_overlap: int = 200
-    rag_retrieval_strategy: str = "similarity"
     rag_top_k: int = 5
     rag_similarity_threshold: float = 0.7
     max_upload_size_mb: int = 10
