@@ -5,7 +5,6 @@ Pydantic models for input validation and response structure.
 
 from pydantic import BaseModel, Field
 from datetime import datetime, timezone
-import uuid
 
 
 class ChatRequest(BaseModel):
@@ -13,9 +12,6 @@ class ChatRequest(BaseModel):
 
     message: str = Field(
         ..., min_length=1, max_length=10000, description="The user message to agent"
-    )
-    thread_id: str = Field(
-        default_factory=lambda: uuid.uuid4().hex, description="Conversation Thread Id"
     )
 
 
