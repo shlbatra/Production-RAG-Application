@@ -7,36 +7,36 @@ from app.agent import RAG_SYSTEM_PROMPT, ProductionAgent
 
 # ProductionAgent.__init__
 class TestInit:
-    def test_rag_enabled_when_store_provided(self, mock_settings, mock_document_store):
+    def test_rag_enabled_when_retriever_provided(self, mock_settings, mock_retriever):
         with patch("app.agent.ChatOpenAI"):
-            agent = ProductionAgent(document_store=mock_document_store)
+            agent = ProductionAgent(retriever=mock_retriever)
         assert agent.rag_enabled is True
-        assert agent.document_store is mock_document_store
+        assert agent.retriever is mock_retriever
 
-    def test_rag_disabled_when_no_store(self, mock_settings):
+    def test_rag_disabled_when_no_retriever(self, mock_settings):
         with patch("app.agent.ChatOpenAI"):
             agent = ProductionAgent()
         assert agent.rag_enabled is False
-        assert agent.document_store is None
+        assert agent.retriever is None
 
     def test_rag_disabled_with_explicit_none(self, mock_settings):
         with patch("app.agent.ChatOpenAI"):
-            agent = ProductionAgent(document_store=None)
+            agent = ProductionAgent(retriever=None)
         assert agent.rag_enabled is False
 
 
 # retrieve node
 class TestRetrieveContext:
-    def test_retrieves_and_formats_sources(self, mock_settings, mock_document_store):
+    def test_retrieves_and_formats_sources(self, mock_settings, mock_retriever):
         with patch("app.agent.ChatOpenAI") as mock_llm_cls:
             mock_llm = MagicMock()
             mock_llm.invoke.return_value = AIMessage(content="answer")
             mock_llm_cls.return_value = mock_llm
-            agent = ProductionAgent(document_store=mock_document_store)
+            agent = ProductionAgent(retriever=mock_retriever)
 
         result = agent.invoke("What is Python?")
 
-        mock_document_store.search_similar.assert_called_once_with(
+        mock_retriever.search.assert_called_once_with(
             query="What is Python?",
             top_k=5,
             threshold=0.7,
@@ -65,14 +65,14 @@ class TestRetrieveContext:
         assert result["sources"] == []
 
     def test_degrades_gracefully_on_search_error(self, mock_settings):
-        store = MagicMock()
-        store.search_similar.side_effect = RuntimeError("connection lost")
+        retriever = MagicMock()
+        retriever.search.side_effect = RuntimeError("connection lost")
 
         with patch("app.agent.ChatOpenAI") as mock_llm_cls:
             mock_llm = MagicMock()
             mock_llm.invoke.return_value = AIMessage(content="fallback answer")
             mock_llm_cls.return_value = mock_llm
-            agent = ProductionAgent(document_store=store)
+            agent = ProductionAgent(retriever=retriever)
 
         result = agent.invoke("hello")
         assert result["response"] == "fallback answer"
@@ -81,14 +81,12 @@ class TestRetrieveContext:
 
 # context injection into LLM prompt
 class TestContextInjection:
-    def test_system_message_prepended_with_context(
-        self, mock_settings, mock_document_store
-    ):
+    def test_system_message_prepended_with_context(self, mock_settings, mock_retriever):
         with patch("app.agent.ChatOpenAI") as mock_llm_cls:
             mock_llm = MagicMock()
             mock_llm.invoke.return_value = AIMessage(content="rag answer")
             mock_llm_cls.return_value = mock_llm
-            agent = ProductionAgent(document_store=mock_document_store)
+            agent = ProductionAgent(retriever=mock_retriever)
 
         agent.invoke("What is Python?")
 
@@ -114,12 +112,12 @@ class TestContextInjection:
 
 # invoke return value
 class TestInvokeReturn:
-    def test_includes_sources_in_result(self, mock_settings, mock_document_store):
+    def test_includes_sources_in_result(self, mock_settings, mock_retriever):
         with patch("app.agent.ChatOpenAI") as mock_llm_cls:
             mock_llm = MagicMock()
             mock_llm.invoke.return_value = AIMessage(content="answer")
             mock_llm_cls.return_value = mock_llm
-            agent = ProductionAgent(document_store=mock_document_store)
+            agent = ProductionAgent(retriever=mock_retriever)
 
         result = agent.invoke("test")
         assert "sources" in result
@@ -141,14 +139,14 @@ class TestInvokeReturn:
 
 # fallback with RAG context
 class TestFallbackWithRAG:
-    def test_fallback_receives_context(self, mock_settings, mock_document_store):
+    def test_fallback_receives_context(self, mock_settings, mock_retriever):
         with patch("app.agent.ChatOpenAI") as mock_llm_cls:
             primary = MagicMock()
             primary.invoke.side_effect = RuntimeError("primary down")
             fallback = MagicMock()
             fallback.invoke.return_value = AIMessage(content="fallback answer")
             mock_llm_cls.side_effect = [primary, fallback]
-            agent = ProductionAgent(document_store=mock_document_store)
+            agent = ProductionAgent(retriever=mock_retriever)
 
         result = agent.invoke("What is Python?")
 

@@ -48,7 +48,7 @@ class ProductionAgent:
     - LangSmith tracing
     """
 
-    def __init__(self, document_store=None):
+    def __init__(self, retriever=None):
         settings = get_settings()
 
         self.primary_llm = ChatOpenAI(
@@ -67,8 +67,8 @@ class ProductionAgent:
             api_key=settings.openai_api_key,
         )
 
-        self.document_store = document_store
-        self.rag_enabled = document_store is not None
+        self.retriever = retriever
+        self.rag_enabled = retriever is not None
         self.max_retries = settings.max_retries
         self.graph = self._build_graph()
 
@@ -81,7 +81,7 @@ class ProductionAgent:
                 return {"context": [], "sources": []}
             try:
                 user_message = state["messages"][-1].content
-                results = self.document_store.search_similar(
+                results = self.retriever.search(
                     query=user_message,
                     top_k=settings.rag_top_k,
                     threshold=settings.rag_similarity_threshold,
