@@ -15,3 +15,6 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
+
+# Generated documents (re-create via: uv run python scripts/generate_documents.py)
+documents/

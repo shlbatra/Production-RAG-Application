@@ -26,8 +26,14 @@ class PdfParser:
         return "\n".join(pages)
 
 
+class TextParser:
+    def parse(self, file: bytes, filename: str) -> str:
+        return file.decode("utf-8")
+
+
 _EXTENSION_MAP: dict[str, DocumentParser] = {
     ".pdf": PdfParser(),
+    ".txt": TextParser(),
 }
 
 

@@ -14,18 +14,23 @@ class TestFindFiles:
         assert find_files(pdf) == [pdf]
 
     def test_rejects_unsupported_extension(self, tmp_path):
+        csv = tmp_path / "notes.csv"
+        csv.write_bytes(b"a,b,c")
+        with pytest.raises(SystemExit):
+            find_files(csv)
+
+    def test_returns_single_txt(self, tmp_path):
         txt = tmp_path / "notes.txt"
         txt.write_bytes(b"text")
-        with pytest.raises(SystemExit):
-            find_files(txt)
+        assert find_files(txt) == [txt]
 
-    def test_finds_pdfs_in_directory(self, tmp_path):
+    def test_finds_supported_files_in_directory(self, tmp_path):
         (tmp_path / "a.pdf").write_bytes(b"a")
         (tmp_path / "b.pdf").write_bytes(b"b")
         (tmp_path / "c.txt").write_bytes(b"c")
         result = find_files(tmp_path)
-        assert len(result) == 2
-        assert all(f.suffix == ".pdf" for f in result)
+        assert len(result) == 3
+        assert {f.suffix for f in result} == {".pdf", ".txt"}
 
     def test_finds_pdfs_recursively(self, tmp_path):
         sub = tmp_path / "subdir"
@@ -36,7 +41,7 @@ class TestFindFiles:
         assert len(result) == 2
 
     def test_exits_when_no_supported_files_in_dir(self, tmp_path):
-        (tmp_path / "notes.txt").write_bytes(b"text")
+        (tmp_path / "notes.csv").write_bytes(b"a,b,c")
         with pytest.raises(SystemExit):
             find_files(tmp_path)
 
@@ -75,7 +80,11 @@ class TestMain:
         main()
 
         mock_ingest.assert_called_once_with(
-            b"fake-pdf", "test.pdf", mock_store_cls.return_value, settings
+            b"fake-pdf",
+            "test.pdf",
+            mock_store_cls.return_value,
+            settings,
+            extra_metadata={},
         )
 
     @patch("scripts.ingest.get_settings")

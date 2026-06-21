@@ -20,6 +20,7 @@ def ingest_document(
     filename: str,
     document_store: DocumentStore,
     settings: Settings,
+    extra_metadata: dict | None = None,
 ) -> dict:
     parser = get_parser(filename)
     text = parser.parse(file_bytes, filename)
@@ -34,6 +35,8 @@ def ingest_document(
         [c for c in chunks],
     )
 
+    base_extra = extra_metadata or {}
+
     records = [
         {
             "content": chunks[i],
@@ -42,6 +45,7 @@ def ingest_document(
                 "source": filename,
                 "chunk_index": i,
                 "total_chunks": len(chunks),
+                **base_extra,
             },
             "embedding": embeddings[i],
         }
