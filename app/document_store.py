@@ -63,6 +63,10 @@ class DocumentStore:
                         ],
                     )
                     inserted += len(batch)
+                cur.execute(
+                    "UPDATE documents SET search_vector = to_tsvector('english', content) "
+                    "WHERE search_vector IS NULL"
+                )
         logger.info("Inserted %d chunks", inserted)
         return inserted
 
