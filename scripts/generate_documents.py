@@ -130,8 +130,8 @@ def generate_policy(policy_id: str, p: dict) -> str:
     mold_section = (
         f"""
 MOLD REMEDIATION ENDORSEMENT
-Endorsement Number: HO-MOLD-{p['state']}-2024
-We will pay up to ${p['mold_limit']:,} per occurrence for the cost of mold
+Endorsement Number: HO-MOLD-{p["state"]}-2024
+We will pay up to ${p["mold_limit"]:,} per occurrence for the cost of mold
 remediation that results from a covered peril. This includes the cost of
 testing, removal, and restoration necessitated by mold resulting from
 a covered water damage event. This endorsement does not cover mold
@@ -157,21 +157,21 @@ CARRIER ID: GWMI-001
 
 DECLARATIONS PAGE
 {DASH}
-Named Insured:     {p['insured']}
-Property Address:  {p['address']}
-Policy Period:     {p['effective']} to {p['expiry']}
+Named Insured:     {p["insured"]}
+Property Address:  {p["address"]}
+Policy Period:     {p["effective"]} to {p["expiry"]}
 Form Type:         HO-3 (Special Form — Open Perils on Dwelling)
 Line of Business:  Homeowners
-State:             {p['state']}
+State:             {p["state"]}
 
 COVERAGE SUMMARY
 {DASH}
-Coverage A — Dwelling:                      ${p['coverage_a']:,}
-Coverage B — Other Structures:              ${p['coverage_b']:,}
-Coverage C — Personal Property:             ${p['coverage_c']:,}
-Coverage D — Loss of Use:                   ${p['coverage_d']:,}
-All-Peril Deductible:                       ${p['deductible']:,}
-Hurricane/Named Storm Deductible:           {p['hurricane_deductible']}
+Coverage A — Dwelling:                      ${p["coverage_a"]:,}
+Coverage B — Other Structures:              ${p["coverage_b"]:,}
+Coverage C — Personal Property:             ${p["coverage_c"]:,}
+Coverage D — Loss of Use:                   ${p["coverage_d"]:,}
+All-Peril Deductible:                       ${p["deductible"]:,}
+Hurricane/Named Storm Deductible:           {p["hurricane_deductible"]}
 
 {SEP}
 SECTION I — COVERAGES
@@ -181,23 +181,23 @@ COVERAGE A — DWELLING
 We cover the dwelling on the residence premises shown in the Declarations,
 including structures attached to the dwelling. We also cover materials and
 supplies located on or next to the residence premises used to construct,
-alter, or repair the dwelling. Coverage A limit: ${p['coverage_a']:,}.
+alter, or repair the dwelling. Coverage A limit: ${p["coverage_a"]:,}.
 
 COVERAGE B — OTHER STRUCTURES
 We cover other structures on the residence premises set apart from the
 dwelling by clear space, including structures connected to the dwelling
-only by a fence, utility line, or similar connection. Limit: ${p['coverage_b']:,}.
+only by a fence, utility line, or similar connection. Limit: ${p["coverage_b"]:,}.
 
 COVERAGE C — PERSONAL PROPERTY
 We cover personal property owned or used by an insured while it is anywhere
 in the world. At your request, we will cover personal property owned by
 others while the property is on the part of the residence premises occupied
-by an insured. Limit: ${p['coverage_c']:,}.
+by an insured. Limit: ${p["coverage_c"]:,}.
 
 COVERAGE D — LOSS OF USE
 If a covered peril makes the residence premises not fit to live in, we
 cover additional living expenses incurred by you so that your household
-can maintain its normal standard of living. Limit: ${p['coverage_d']:,}.
+can maintain its normal standard of living. Limit: ${p["coverage_d"]:,}.
 
 {SEP}
 SECTION I — EXCLUSIONS
@@ -243,15 +243,15 @@ ENDORSEMENTS
 {SEP}
 {mold_section}
 WATER BACKUP AND SUMP DISCHARGE/OVERFLOW ENDORSEMENT
-Endorsement Number: HO-WBSD-{p['state']}-2024
-We will pay up to ${p['water_backup_limit']:,} for direct physical loss to
+Endorsement Number: HO-WBSD-{p["state"]}-2024
+We will pay up to ${p["water_backup_limit"]:,} for direct physical loss to
 covered property caused by water which backs up through sewers or drains,
 or which overflows or is discharged from a sump, sump pump, or related
 equipment. This endorsement does not cover flood as defined in the
 flood exclusion above.
 
 {SEP}
-{p['state_specific']}
+{p["state_specific"]}
 {SEP}
 END OF POLICY — {policy_id}
 """
