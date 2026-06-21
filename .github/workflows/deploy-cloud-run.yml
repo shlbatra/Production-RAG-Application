@@ -70,7 +70,7 @@ jobs:
       - name: Parse machine type
         id: machine
         run: |
-          MACHINE_TYPE="${{ inputs.machine_type || '1cpu-512Mi' }}"
+          MACHINE_TYPE="${{ inputs.machine_type || '1-512Mi' }}"
           echo "cpu=${MACHINE_TYPE%%-*}" >> "$GITHUB_OUTPUT"
           echo "memory=${MACHINE_TYPE##*-}" >> "$GITHUB_OUTPUT"
 
