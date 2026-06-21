@@ -17,9 +17,10 @@ class Settings(BaseSettings):
     fallback_model: str = "gpt-4.1-nano"
 
     # Langsmith
-    langchain_tracing_v2: bool = True
-    langchain_api_key: str = ""
-    langchain_project: str = "Prod RAG Project"
+    langsmith_tracing: bool = True
+    langsmith_api_key: str = ""
+    langsmith_endpoint: str = "https://eu.api.smith.langchain.com"
+    langsmith_project: str = "Prod RAG Project"
 
     # Supabase
     supabase_url: str = ""
