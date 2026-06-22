@@ -1,3 +1,7 @@
+import os
+
+os.environ["LANGSMITH_TRACING"] = "false"
+
 from unittest.mock import MagicMock, patch
 
 import pytest
