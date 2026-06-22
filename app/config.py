@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     db_pool_min_conn: int = 2
     db_pool_max_conn: int = 10
 
+    # Security
+    enable_pii_detection: bool = False
+
     # Application
     app_env: str = "development"
     log_level: str = "INFO"

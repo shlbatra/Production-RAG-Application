@@ -105,8 +105,8 @@ class OutputValidator:
         re.compile(r"api[_\s]?key\s*[:=]", re.I),
     ]
 
-    def __init__(self):
-        self.pii_detector = PIIDetector()
+    def __init__(self, enable_pii_detection: bool = False):
+        self.pii_detector = PIIDetector() if enable_pii_detection else None
 
     def validate(self, output: str) -> tuple[str, list[str]]:
         """
@@ -116,10 +116,11 @@ class OutputValidator:
         warnings = []
 
         # Check for PII leakage in output
-        pii_found = self.pii_detector.detect(output)
-        if pii_found:
-            output = self.pii_detector.mask(output)
-            warnings.append(f"PII masked in output: {list(pii_found.keys())}")
+        if self.pii_detector:
+            pii_found = self.pii_detector.detect(output)
+            if pii_found:
+                output = self.pii_detector.mask(output)
+                warnings.append(f"PII masked in output: {list(pii_found.keys())}")
 
         # Check for harmful content
         for pattern in self.HARMFUL_PATTERNS:
@@ -139,10 +140,12 @@ class SecurityPipeline:
     This is single class you wire into api
     """
 
-    def __init__(self):
+    def __init__(self, enable_pii_detection: bool = False):
         self.sanitizer = InputSanitizer()
-        self.pii_detector = PIIDetector()
-        self.output_validator = OutputValidator()
+        self.pii_detector = PIIDetector() if enable_pii_detection else None
+        self.output_validator = OutputValidator(
+            enable_pii_detection=enable_pii_detection
+        )
 
     @traceable(name="security_check_input")
     def check_input(self, text: str) -> tuple[bool, str, list[str]]:
@@ -155,16 +158,17 @@ class SecurityPipeline:
         # Step1: Check for injection
         is_safe, reason = self.sanitizer.check(text)
         if not is_safe:
-            return False, "", [reason]
+            return False, "", [reason or "Blocked"]
 
         # Step2: Clean input
         cleaned = self.sanitizer.clean(text)
 
         # Step 3: Mask PII before it reaches LLM
-        pii_found = self.pii_detector.detect(cleaned)
-        if pii_found:
-            cleaned = self.pii_detector.mask(cleaned)
-            notes.append(f"Input PII masked: {list(pii_found.keys())}")
+        if self.pii_detector:
+            pii_found = self.pii_detector.detect(cleaned)
+            if pii_found:
+                cleaned = self.pii_detector.mask(cleaned)
+                notes.append(f"Input PII masked: {list(pii_found.keys())}")
 
         return True, cleaned, notes
 

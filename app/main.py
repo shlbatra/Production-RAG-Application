@@ -75,7 +75,7 @@ async def lifespan(app: FastAPI):
     )
 
     # Initialize components
-    security = SecurityPipeline()
+    security = SecurityPipeline(enable_pii_detection=settings.enable_pii_detection)
     cache = ResponseCache(ttl_seconds=settings.cache_ttl_seconds)
     metrics = MetricsCollector()
     retriever = None
