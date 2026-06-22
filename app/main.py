@@ -80,12 +80,18 @@ async def lifespan(app: FastAPI):
     metrics = MetricsCollector()
     retriever = None
     if settings.rag_enabled:
-        document_store = DocumentStore(settings)
-        retriever = get_retriever(settings, document_store)
-        logger.info(
-            "Supabase document store initialized (RAG enabled, strategy=%s)",
-            settings.rag_retrieval_strategy,
-        )
+        try:
+            document_store = DocumentStore(settings)
+            retriever = get_retriever(settings, document_store)
+            logger.info(
+                "Supabase document store initialized (RAG enabled, strategy=%s)",
+                settings.rag_retrieval_strategy,
+            )
+        except Exception:
+            logger.exception(
+                "Failed to connect to document store — starting with RAG disabled"
+            )
+            document_store = None
     else:
         logger.info("Supabase not configured (RAG disabled)")
 
