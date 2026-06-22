@@ -161,15 +161,6 @@ After the script completes, it prints the GitHub secrets and variables to config
 | `GCP_WIF_PROVIDER` | Secret | Workload Identity provider resource name (printed by setup script) |
 | `GCP_WIF_SERVICE_ACCOUNT` | Secret | WIF service account email (printed by setup script) |
 
-**Service accounts:**
-
-Two service accounts are used, each with a distinct role:
-
-| Service Account | Purpose | Roles |
-|---|---|---|
-| `github-actions-deployer@<project>.iam.gserviceaccount.com` | **Deploy-time** — GitHub Actions impersonates this via Workload Identity Federation to build, push, and deploy | `run.admin`, `iam.serviceAccountUser`, `artifactregistry.writer`, `secretmanager.secretAccessor` |
-| `<project-number>-compute@developer.gserviceaccount.com` | **Run-time** — Cloud Run's default compute SA, used by the running container to read secrets | `secretmanager.secretAccessor` |
-
 ### Environment Variables
 
 See `.env.example` for the full list. Key variables:
