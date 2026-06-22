@@ -150,12 +150,7 @@ bash scripts/setup-cloud-run.sh
 bash scripts/setup-cloud-run.sh my-custom-api
 ```
 
-After the script completes, it prints the GitHub secrets and variables to configure. Set your real API keys:
-
-```bash
-echo -n 'sk-your-key' | gcloud secrets versions add OPENAI_API_KEY --data-file=- --project=$GCP_PROJECT_ID
-echo -n 'lsv2_your-key' | gcloud secrets versions add LANGSMITH_API_KEY --data-file=- --project=$GCP_PROJECT_ID
-```
+After the script completes, it prints the GitHub secrets and variables to configure.
 
 **GitHub repository configuration:**
 
