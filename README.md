@@ -48,7 +48,7 @@ app/
 ├── models.py          # Request/response Pydantic models
 ├── agent.py           # LangGraph agent with retry + fallback
 ├── retrieval.py       # RetrievalStrategy Protocol (similarity, BM25, hybrid)
-├── document_store.py  # pgvector vector store + full-text search over Supabase Postgres
+├── document_store.py  # pgvector vector store + full-text search (ThreadedConnectionPool)
 ├── document_parser.py # Document parsing Protocol (PDF, text)
 ├── chunking.py        # Chunking strategy Protocol (recursive text splitter)
 ├── ingestion.py       # Document ingestion pipeline (parse → chunk → embed → store)
@@ -69,7 +69,9 @@ supabase/migrations/
 
 | Feature | Implementation | Details |
 |---|---|---|
-| LangSmith Tracing | `@traceable` decorators | Every request traced with metadata |
+| LangSmith Tracing | `@traceable` decorators | Every request traced with metadata (EU endpoint) |
+| Connection Pooling | `document_store.py` | ThreadedConnectionPool (min=2, max=10) reuses DB connections across requests |
+| Graceful Degradation | `main.py` lifespan | App starts with RAG disabled if database is unreachable |
 | Input Sanitization | `security.py` | Blocks prompt injection attempts |
 | PII Detection/Masking | `security.py` | Redacts emails, SSNs, phone numbers, credit cards |
 | Retrieval Strategies | `retrieval.py` | Similarity, BM25, and hybrid (RRF) search |
@@ -119,7 +121,7 @@ psql -d "$SUPABASE_DATABASE_URL" -f supabase/migrations/001_create_documents.sql
 psql -d "$SUPABASE_DATABASE_URL" -f supabase/migrations/002_add_full_text_search.sql
 ```
 
-3. Add `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, and `SUPABASE_DATABASE_URL` to your `.env`
+3. Add `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, and `SUPABASE_DATABASE_URL` to your `.env`. Use the **transaction pooler** connection string (Settings → Database → Connection string → Mode: Transaction, port 6543) rather than the direct connection (port 5432)
 
 ### Docker
 
@@ -152,7 +154,7 @@ After the script completes, it prints the GitHub secrets and variables to config
 
 ```bash
 echo -n 'sk-your-key' | gcloud secrets versions add OPENAI_API_KEY --data-file=- --project=$GCP_PROJECT_ID
-echo -n 'lsv2_your-key' | gcloud secrets versions add LANGCHAIN_API_KEY --data-file=- --project=$GCP_PROJECT_ID
+echo -n 'lsv2_your-key' | gcloud secrets versions add LANGSMITH_API_KEY --data-file=- --project=$GCP_PROJECT_ID
 ```
 
 **GitHub repository configuration:**
@@ -180,9 +182,15 @@ See `.env.example` for the full list. Key variables:
 | Variable | Description | Default |
 |---|---|---|
 | `OPENAI_API_KEY` | OpenAI API key | (required) |
-| `LANGCHAIN_API_KEY` | LangSmith API key | (optional) |
+| `LANGSMITH_API_KEY` | LangSmith API key | (optional) |
+| `LANGSMITH_ENDPOINT` | LangSmith API endpoint | `https://eu.api.smith.langchain.com` |
+| `LANGSMITH_PROJECT` | LangSmith project name | `Prod RAG Project` |
+| `LANGSMITH_TRACING` | Enable LangSmith tracing | `true` |
 | `PRIMARY_MODEL` | Primary LLM model | `gpt-4.1-mini` |
 | `FALLBACK_MODEL` | Fallback LLM model | `gpt-4.1-nano` |
+| `SUPABASE_DATABASE_URL` | Postgres connection string (use transaction pooler) | (required for RAG) |
+| `DB_POOL_MIN_CONN` | Minimum pooled DB connections | `2` |
+| `DB_POOL_MAX_CONN` | Maximum pooled DB connections | `10` |
 | `RAG_RETRIEVAL_STRATEGY` | Retrieval strategy | `hybrid` |
 | `RAG_TOP_K` | Number of chunks to retrieve | `5` |
 | `RAG_SIMILARITY_THRESHOLD` | Minimum similarity score | `0.7` |
