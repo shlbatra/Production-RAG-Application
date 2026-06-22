@@ -150,17 +150,6 @@ bash scripts/setup-cloud-run.sh
 bash scripts/setup-cloud-run.sh my-custom-api
 ```
 
-After the script completes, it prints the GitHub secrets and variables to configure.
-
-**GitHub repository configuration:**
-
-| Name | Type | Value |
-|---|---|---|
-| `GCP_PROJECT_ID` | Variable | Your GCP project ID |
-| `GCP_REGION` | Variable | e.g. `us-central1` |
-| `GCP_WIF_PROVIDER` | Secret | Workload Identity provider resource name (printed by setup script) |
-| `GCP_WIF_SERVICE_ACCOUNT` | Secret | WIF service account email (printed by setup script) |
-
 ### Environment Variables
 
 See `.env.example` for the full list. Key variables:
