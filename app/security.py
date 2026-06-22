@@ -158,7 +158,7 @@ class SecurityPipeline:
         # Step1: Check for injection
         is_safe, reason = self.sanitizer.check(text)
         if not is_safe:
-            return False, "", [reason]
+            return False, "", [reason or "Blocked"]
 
         # Step2: Clean input
         cleaned = self.sanitizer.clean(text)
