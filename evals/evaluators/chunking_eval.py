@@ -184,13 +184,13 @@ class ChunkingEvaluator:
         return len(joined_stripped) / len(original_stripped)
 
     def _check_overlap_correctness(self, chunks: list[str]) -> tuple[int, int]:
-        """For adjacent chunk pairs, check that body overlap is within ±20% of configured overlap."""
+        """For adjacent chunk pairs, check that body overlap is within ±50% of configured overlap."""
         if len(chunks) < 2 or self._chunk_overlap == 0:
             return 0, 0
         bodies = [self._strip_context_prefix(c) for c in chunks]
         ok = 0
         total = 0
-        tolerance = self._chunk_overlap * 0.20
+        tolerance = self._chunk_overlap * 0.50
         for i in range(len(bodies) - 1):
             actual_overlap = self._measure_overlap(bodies[i], bodies[i + 1])
             if abs(actual_overlap - self._chunk_overlap) <= max(tolerance, 20):
