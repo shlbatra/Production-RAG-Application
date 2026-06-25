@@ -143,6 +143,13 @@ class DocumentStore:
                 )
                 return cur.rowcount
 
+    def clear_all(self) -> int:
+        """Delete all rows from the documents table. Returns the number of rows deleted."""
+        with self._conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM documents")
+                return cur.rowcount
+
     def health_check(self) -> bool:
         try:
             with self._conn() as conn:

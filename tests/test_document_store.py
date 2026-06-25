@@ -169,6 +169,20 @@ class TestDeleteDocument:
         assert params == ("abc-123",)
 
 
+# DocumentStore.clear_all
+class TestClearAll:
+    def test_deletes_all_rows(self, store, mock_conn):
+        conn, cursor = mock_conn
+        store._pool.getconn.return_value = conn
+        cursor.rowcount = 42
+
+        result = store.clear_all()
+
+        assert result == 42
+        sql = cursor.execute.call_args[0][0]
+        assert "DELETE FROM documents" in sql
+
+
 # DocumentStore.health_check
 class TestHealthCheck:
     def test_returns_true_on_success(self, store, mock_conn):

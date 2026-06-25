@@ -5,6 +5,7 @@ Usage:
     uv run python scripts/ingest.py ./data/report.pdf        # single file
     uv run python scripts/ingest.py ./data/pdfs/              # directory (recursive)
     uv run python scripts/ingest.py ./documents/ --metadata ./documents/metadata.json
+    uv run python scripts/ingest.py ./documents/ --clear  # delete all existing chunks first
 """
 
 import json
@@ -54,6 +55,11 @@ def load_metadata(metadata_path: Path, base_dir: Path) -> dict:
 def main() -> None:
     args = sys.argv[1:]
     metadata_path = None
+    clear = False
+
+    if "--clear" in args:
+        args.remove("--clear")
+        clear = True
 
     if "--metadata" in args:
         idx = args.index("--metadata")
@@ -65,7 +71,7 @@ def main() -> None:
 
     if len(args) != 1:
         print(
-            "Usage: uv run python scripts/ingest.py <file_or_directory> [--metadata metadata.json]"
+            "Usage: uv run python scripts/ingest.py <file_or_directory> [--metadata metadata.json] [--clear]"
         )
         sys.exit(1)
 
@@ -77,6 +83,11 @@ def main() -> None:
         sys.exit(1)
 
     document_store = DocumentStore(settings)
+
+    if clear:
+        deleted = document_store.clear_all()
+        print(f"Cleared {deleted} existing chunks\n")
+
     files = find_files(target)
 
     file_metadata = {}
