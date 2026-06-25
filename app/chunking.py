@@ -2,7 +2,7 @@
 Chunking strategies — split raw text into chunks for embedding.
 
 Uses a Protocol so new strategies can be added without touching existing code:
-implement chunk(text) -> list[str] and add a mapping entry in _STRATEGY_MAP.
+implement chunk(text) -> list[str] and add a mapping entry in _CHUNKER_MAP.
 """
 
 from typing import Protocol, runtime_checkable
@@ -61,16 +61,16 @@ class ContextualChunker:
         return [prefix + chunk for chunk in chunks]
 
 
-_STRATEGY_MAP: dict[str, type] = {
+_CHUNKER_MAP: dict[str, type] = {
     "recursive": RecursiveChunker,
     "contextual": ContextualChunker,
 }
 
 
 def get_chunker(settings: Settings) -> type:
-    cls = _STRATEGY_MAP.get(settings.rag_chunking_strategy)
+    cls = _CHUNKER_MAP.get(settings.rag_chunking_strategy)
     if cls is None:
-        supported = sorted(_STRATEGY_MAP.keys())
+        supported = sorted(_CHUNKER_MAP.keys())
         raise ValueError(
             f"Unknown chunking strategy '{settings.rag_chunking_strategy}'. "
             f"Supported: {', '.join(supported)}"

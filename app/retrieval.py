@@ -83,7 +83,7 @@ class HybridRetriever:
         return []
 
 
-_STRATEGY_MAP: dict[str, type] = {
+_RETRIEVER_MAP: dict[str, type] = {
     "similarity": SimilarityRetriever,
     "bm25": BM25Retriever,
     "hybrid": HybridRetriever,
@@ -93,10 +93,10 @@ _STRATEGY_MAP: dict[str, type] = {
 def get_retriever(
     settings: Settings, document_store: DocumentStore
 ) -> RetrievalStrategy:
-    cls = _STRATEGY_MAP.get(settings.rag_retrieval_strategy)
+    cls = _RETRIEVER_MAP.get(settings.rag_retrieval_strategy)
     if cls is None:
         raise ValueError(
             f"Unknown retrieval strategy '{settings.rag_retrieval_strategy}'. "
-            f"Supported: {', '.join(sorted(_STRATEGY_MAP))}"
+            f"Supported: {', '.join(sorted(_RETRIEVER_MAP))}"
         )
     return cls(document_store=document_store)
