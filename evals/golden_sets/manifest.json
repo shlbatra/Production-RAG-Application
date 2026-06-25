@@ -1,0 +1,14 @@
+{
+  "active_version": "v1.0.0",
+  "versions": {
+    "v1.0.0": {
+      "created": "2026-06-25",
+      "total_cases": 15,
+      "categories": {
+        "factual": 10,
+        "multi_hop": 3,
+        "unanswerable": 2
+      }
+    }
+  }
+}
