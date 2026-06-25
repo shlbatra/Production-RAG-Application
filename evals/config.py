@@ -19,6 +19,16 @@ class EvalSettings(BaseSettings):
     security_false_positive_max: float = 0.05
     security_vectors_path: str = "evals/fixtures/security_vectors.jsonl"
 
+    # Generation structural thresholds
+    generation_parse_success_min: float = 1.0
+    generation_non_empty_min: float = 1.0
+    generation_source_citation_min: float = 0.95
+    generation_no_raw_errors_min: float = 1.0
+    generation_refusal_accuracy_min: float = 0.90
+    generation_response_length_min: float = 0.95
+    generation_min_response_length: int = 10
+    generation_max_response_length: int = 5000
+
     # Retrieval thresholds
     retrieval_hit_rate_min: float = 0.90
     retrieval_mrr_min: float = 0.70
