@@ -63,7 +63,7 @@ Replace the `ResponseCache` class internals with Redis via Upstash while keeping
 | ~~`app/main.py`~~ | ~~Pass `redis_url` to `ResponseCache`, add Redis health check~~ DONE |
 | ~~`pyproject.toml`~~ | ~~Add `redis` + `fakeredis` dependencies~~ DONE |
 | `.env.example` | Add `REDIS_URL` example |
-| `docker-compose.yml` | Add Redis service for local development |
+| ~~`docker-compose.yml`~~ | ~~Add Redis service for local development~~ DONE |
 | `tests/test_cache.py` | New test file using `fakeredis` |
 | `.github/workflows/deploy-cloud-run.yml` | Add `REDIS_URL` env var |
 
