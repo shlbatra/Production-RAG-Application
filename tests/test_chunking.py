@@ -2,7 +2,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from app.chunking import ChunkingStrategy, ContextualChunker, RecursiveChunker, get_chunker
+from app.chunking import (
+    ChunkingStrategy,
+    ContextualChunker,
+    RecursiveChunker,
+    get_chunker,
+)
 
 
 def _mock_settings(
