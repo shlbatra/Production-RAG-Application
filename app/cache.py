@@ -49,6 +49,7 @@ class ResponseCache:
     def set(self, query: str, response: str) -> None:
         """Cache a response with TTL. Silently fails if Redis is unreachable."""
         try:
+            # ex= sets native Redis TTL — Redis auto-expires the key, no manual cleanup needed on get()
             self._redis.set(self._make_key(query), response, ex=self.ttl)
         except redis.RedisError:
             logger.exception("Redis SET failed, skipping cache write")
