@@ -153,7 +153,7 @@ async def health():
     checks = {
         "agent": agent is not None,
         "security": security is not None,
-        "cache": cache is not None,
+        "cache": cache.health_check() if cache else False,
         "document_store": (
             document_store.health_check() if document_store else "not_configured"
         ),
