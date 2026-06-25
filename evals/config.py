@@ -7,6 +7,13 @@ class EvalSettings(BaseSettings):
     golden_set_version: str = "v1.0.0"
     golden_set_dir: str = "evals/golden_sets"
 
+    # Chunking thresholds
+    chunking_size_compliance_min: float = 0.90
+    chunking_boundary_quality_min: float = 0.70
+    chunking_info_preservation_min: float = 0.99
+    chunking_overlap_correctness_min: float = 0.90
+    chunking_fixtures_dir: str = "documents"
+
     # Retrieval thresholds
     retrieval_hit_rate_min: float = 0.90
     retrieval_mrr_min: float = 0.70
