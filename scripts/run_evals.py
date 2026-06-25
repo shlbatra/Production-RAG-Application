@@ -7,10 +7,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from app.chunking import get_chunker
 from app.config import get_settings
 from app.document_store import DocumentStore
 from app.retrieval import get_retriever
 from evals.config import EvalSettings
+from evals.evaluators.chunking_eval import ChunkingEvaluator
 from evals.evaluators.retrieval_eval import RetrievalEvaluator
 from evals.loader import load_golden_set
 from evals.runner import EvalRunner
@@ -19,7 +21,9 @@ from evals.runner import EvalRunner
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run RAG pipeline evaluations")
     parser.add_argument(
-        "--component", choices=["retrieval"], help="Run a single component evaluator"
+        "--component",
+        choices=["chunking", "retrieval"],
+        help="Run a single component evaluator",
     )
     parser.add_argument("--category", help="Filter golden set by category")
     parser.add_argument(
@@ -57,10 +61,23 @@ def main() -> int:
 
     runner = EvalRunner(settings=eval_settings)
 
-    components_to_run = [args.component] if args.component else ["retrieval"]
+    app_settings = get_settings()
+    components_to_run = (
+        [args.component] if args.component else ["chunking", "retrieval"]
+    )
+
+    if "chunking" in components_to_run:
+        fixtures_dir = Path(eval_settings.chunking_fixtures_dir)
+        doc_paths = sorted(f for f in fixtures_dir.rglob("*.txt") if f.is_file())
+        if doc_paths:
+            chunker = get_chunker(app_settings)
+            evaluator = ChunkingEvaluator(chunker, app_settings, eval_settings)
+            result = evaluator.evaluate(doc_paths)
+            runner.add_result(result)
+        else:
+            print(f"Warning: no .txt files found in {fixtures_dir}")
 
     if "retrieval" in components_to_run:
-        app_settings = get_settings()
         document_store = DocumentStore(app_settings)
         try:
             retriever = get_retriever(app_settings, document_store)
