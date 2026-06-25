@@ -65,6 +65,22 @@ class RetrievalEvaluator:
             if hit:
                 hit_count += 1
 
+            logger.debug(
+                "[%s] query=%r | expected=%s | got=%s | hit=%s",
+                case.id,
+                case.question,
+                case.expected_source_files,
+                [
+                    {
+                        "source": r.get("metadata", {}).get("source", "?"),
+                        "similarity": round(r.get("similarity", 0), 4),
+                        "preview": r.get("content", "")[:100],
+                    }
+                    for r in results
+                ],
+                hit,
+            )
+
             rr = 0.0
             for i, rel in enumerate(relevance):
                 if rel:
