@@ -4,9 +4,55 @@
 
 The current `ResponseCache` in `app/cache.py` uses a Python dict for LLM response caching. The docstring and comments explicitly call out that this should be replaced with Redis for production. The limitations are real: no persistence across restarts, no shared state across Cloud Run instances (each instance has its own cache), unbounded memory growth, and lazy-only expiration. Redis solves all of these.
 
-## Approach
+## Approaches Evaluated
 
-Replace the `ResponseCache` class internals with Redis while keeping the exact same public interface (`get`, `set`, `stats` property). This means `app/main.py` requires minimal changes — it already calls `cache.get()`, `cache.set()`, and `cache.stats`.
+Three approaches were considered for providing Redis to the FastAPI app running on Cloud Run:
+
+### 1. Google Cloud Memorystore for Redis
+
+Fully managed Redis by GCP. Create a Memorystore instance and connect Cloud Run via a VPC Connector.
+
+| Aspect | Detail |
+|---|---|
+| **Setup** | `gcloud redis instances create` + Serverless VPC Access connector + `REDIS_URL` env var on Cloud Run |
+| **Pros** | Zero ops, automatic failover, native GCP integration, low latency (same VPC) |
+| **Cons** | Requires VPC connector (~$0.05/hr), Memorystore has a cost floor (~$0.05/hr for smallest instance) |
+| **Cost** | ~$70-80/month minimum even at zero traffic |
+| **Verdict** | Best for production at scale where shared VPC already exists. Overkill for a study/learning project. |
+
+### 2. Redis Sidecar Container on Cloud Run
+
+Cloud Run supports multi-container pods — run Redis as a sidecar alongside the FastAPI container.
+
+| Aspect | Detail |
+|---|---|
+| **Setup** | Add Redis container to Cloud Run service YAML, access via `localhost:6379` |
+| **Pros** | No external service, no VPC connector, Redis on localhost (lowest latency) |
+| **Cons** | Not shared across instances (each instance gets its own Redis), no persistence across deploys — same fundamental limitation as in-memory |
+| **Cost** | Only Cloud Run compute costs (RAM allocated to sidecar) |
+| **Verdict** | Only useful if you want Redis API semantics (TTL, LRU, data structures) on a single instance. Does not solve the cross-instance sharing problem. |
+
+### 3. Upstash Redis (Chosen)
+
+Serverless Redis-as-a-service. Accessed over standard Redis protocol with TLS (`rediss://`) — no VPC connector needed.
+
+| Aspect | Detail |
+|---|---|
+| **Setup** | Create Upstash instance, set `REDIS_URL` as Cloud Run env var / secret |
+| **Pros** | Generous free tier (10K commands/day), no VPC needed, pay-per-request, works from anywhere |
+| **Cons** | Slightly higher latency than in-VPC (public internet), free tier caps at scale |
+| **Cost** | Free for light usage, ~$0.2 per 100K commands beyond free tier |
+| **Verdict** | Best fit for this project — zero infrastructure overhead, free at low traffic, and the code is identical to any other Redis (same `redis` Python client). |
+
+---
+
+## Chosen Approach: Upstash Redis
+
+Replace the `ResponseCache` class internals with Redis via Upstash while keeping the exact same public interface (`get`, `set`, `stats` property). This means `app/main.py` requires minimal changes — it already calls `cache.get()`, `cache.set()`, and `cache.stats`.
+
+- **Cloud Run**: Set `REDIS_URL` to the Upstash `rediss://` connection string. No VPC connector or additional infrastructure.
+- **Local dev**: Use a local Redis container via `docker-compose.yml` (standard `redis://localhost:6379/0`).
+- **Code**: The `redis` Python client works with both local Redis and Upstash — the only difference is the URL.
 
 ### Files to Modify
 
@@ -17,7 +63,7 @@ Replace the `ResponseCache` class internals with Redis while keeping the exact s
 | `app/main.py` | Pass `redis_url` to `ResponseCache`, add Redis health check |
 | `pyproject.toml` | Add `redis` + `fakeredis` dependencies |
 | `.env.example` | Add `REDIS_URL` example |
-| `docker-compose.yml` | Add Redis service |
+| `docker-compose.yml` | Add Redis service for local development |
 | `tests/test_cache.py` | New test file using `fakeredis` |
 | `.github/workflows/deploy-cloud-run.yml` | Add `REDIS_URL` env var |
 
@@ -30,7 +76,7 @@ Replace the `ResponseCache` class internals with Redis while keeping the exact s
 Add one field to `Settings`:
 
 ```python
-redis_url: str = ""  # e.g. "redis://localhost:6379/0"
+redis_url: str = ""  # Local: "redis://localhost:6379/0", Upstash: "rediss://default:xxx@xxx.upstash.io:6379"
 ```
 
 Add a computed property:
@@ -52,7 +98,7 @@ Rewrite `ResponseCache` to use `redis.Redis`. Key design decisions:
 - **TTL**: Redis native `EX` parameter on `SET` — automatic expiration, no lazy cleanup needed
 - **Hit/miss counters**: Stored in Redis too (`rag:cache:hits`, `rag:cache:misses`) via `INCR` — shared across instances
 - **Graceful degradation**: If Redis is unreachable, log the error and return a cache miss (don't crash the request)
-- **Connection**: Use `redis.Redis.from_url()` with `decode_responses=True` for string handling
+- **Connection**: Use `redis.Redis.from_url()` with `decode_responses=True` — works with both `redis://` (local) and `rediss://` (Upstash TLS)
 - **Health check**: Add a `health_check() -> bool` method that calls `redis.ping()`
 
 ```python
@@ -148,7 +194,9 @@ cache = ResponseCache(redis_url=settings.redis_url, ttl_seconds=settings.cache_t
 
 ---
 
-### 4. `docker-compose.yml` — Add Redis Service
+### 4. `docker-compose.yml` — Add Redis Service (Local Dev)
+
+Local development uses a standard Redis container. The Upstash URL is only used in Cloud Run.
 
 ```yaml
 services:
@@ -188,7 +236,9 @@ services:
 ### 5. `.env.example` — Add Redis URL
 
 ```
-# Redis (required for response caching)
+# Redis — response caching
+# Local (Docker): redis://localhost:6379/0
+# Upstash (Cloud Run): rediss://default:<password>@<endpoint>.upstash.io:6379
 REDIS_URL=redis://localhost:6379/0
 ```
 
@@ -225,15 +275,28 @@ Use `fakeredis` to test without a real Redis instance:
 
 ---
 
-### 8. `.github/workflows/deploy-cloud-run.yml` — Add Redis URL
+### 8. `.github/workflows/deploy-cloud-run.yml` — Add Upstash Redis URL
 
-For GCP Memorystore (Redis), the URL is typically a private IP without auth, so it goes in env vars:
+The Upstash URL contains credentials, so store it as a GCP Secret and reference via `--set-secrets`:
 
+```yaml
+- name: Deploy to Cloud Run
+  run: |
+    gcloud run deploy ${{ env.SERVICE_NAME }} \
+      --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+      --region ${{ env.REGION }} \
+      --set-secrets="REDIS_URL=UPSTASH_REDIS_URL:latest" \
+      ...
 ```
---set-env-vars="...,REDIS_URL=redis://10.0.0.X:6379/0"
+
+This requires creating the secret in GCP first:
+
+```bash
+echo -n "rediss://default:<password>@<endpoint>.upstash.io:6379" | \
+  gcloud secrets create UPSTASH_REDIS_URL --data-file=-
 ```
 
-If the Redis URL contains credentials, move it to `--set-secrets` instead.
+No VPC connector is needed — Upstash is accessed over the public internet with TLS.
 
 ---
 
@@ -243,14 +306,6 @@ If the Redis URL contains credentials, move it to `--set-secrets` instead.
 - **`/cache/stats` endpoint** — returns the same shape dict
 - **`/chat` endpoint logic** — completely untouched
 - **All other files** — the cache is self-contained
-
-## Why Redis Over Alternatives
-
-| Option | Verdict |
-|---|---|
-| **Redis** | Native TTL, shared across instances, persistence, battle-tested. GCP Memorystore provides managed Redis. |
-| **Memcached** | Simpler but no persistence, no data structures beyond key-value. |
-| **Cloud Run in-memory** | Current approach. Doesn't share across instances, lost on restart. |
 
 ---
 

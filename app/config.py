@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     rag_similarity_threshold: float = 0.7
     max_upload_size_mb: int = 10
 
+    # Redis
+    redis_url: str = ""  # Local: "redis://localhost:6379/0", Upstash: "rediss://default:xxx@xxx.upstash.io:6379"
+
     # Connection Pool
     db_pool_min_conn: int = 2
     db_pool_max_conn: int = 10
@@ -56,6 +59,10 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.app_env == "production"
+
+    @property
+    def redis_enabled(self) -> bool:
+        return bool(self.redis_url)
 
     @property
     def rag_enabled(self) -> bool:
