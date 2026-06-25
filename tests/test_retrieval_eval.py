@@ -1,4 +1,4 @@
-"""Tests for the retrieval evaluator — unit tests using mock document store."""
+"""Tests for the retrieval evaluator — unit tests using mock retriever."""
 
 import math
 from unittest.mock import MagicMock
@@ -88,14 +88,14 @@ class TestComputeDcg:
 
 class TestRetrievalEvaluator:
     def test_perfect_retrieval(self, eval_settings):
-        store = MagicMock()
-        store.search_similar.return_value = [
+        retriever = MagicMock()
+        retriever.search.return_value = [
             _make_chunk(
                 source="policies/PLY-FL-001.txt", content="Coverage A $350,000"
             ),
         ]
 
-        evaluator = RetrievalEvaluator(store, eval_settings)
+        evaluator = RetrievalEvaluator(retriever, eval_settings)
         cases = [
             _make_case(
                 expected_source_files=["policies/PLY-FL-001.txt"],
@@ -115,13 +115,13 @@ class TestRetrievalEvaluator:
         assert mrr.value == 1.0
 
     def test_no_relevant_results(self, eval_settings):
-        store = MagicMock()
-        store.search_similar.return_value = [
+        retriever = MagicMock()
+        retriever.search.return_value = [
             _make_chunk(source="wrong.txt"),
             _make_chunk(source="also_wrong.txt"),
         ]
 
-        evaluator = RetrievalEvaluator(store, eval_settings)
+        evaluator = RetrievalEvaluator(retriever, eval_settings)
         cases = [_make_case(expected_source_files=["policies/PLY-FL-001.txt"])]
         result = evaluator.evaluate(cases)
 
@@ -130,13 +130,13 @@ class TestRetrievalEvaluator:
         assert hit_rate.passed is False
 
     def test_relevant_at_position_two(self, eval_settings):
-        store = MagicMock()
-        store.search_similar.return_value = [
+        retriever = MagicMock()
+        retriever.search.return_value = [
             _make_chunk(source="wrong.txt"),
             _make_chunk(source="policies/PLY-FL-001.txt"),
         ]
 
-        evaluator = RetrievalEvaluator(store, eval_settings)
+        evaluator = RetrievalEvaluator(retriever, eval_settings)
         cases = [_make_case(expected_source_files=["policies/PLY-FL-001.txt"])]
         result = evaluator.evaluate(cases)
 
@@ -144,13 +144,13 @@ class TestRetrievalEvaluator:
         assert mrr.value == 0.5
 
     def test_multiple_cases_aggregation(self, eval_settings):
-        store = MagicMock()
-        store.search_similar.side_effect = [
+        retriever = MagicMock()
+        retriever.search.side_effect = [
             [_make_chunk(source="policies/PLY-FL-001.txt")],
             [_make_chunk(source="wrong.txt")],
         ]
 
-        evaluator = RetrievalEvaluator(store, eval_settings)
+        evaluator = RetrievalEvaluator(retriever, eval_settings)
         cases = [
             _make_case(id="case-1", expected_source_files=["policies/PLY-FL-001.txt"]),
             _make_case(
@@ -167,19 +167,19 @@ class TestRetrievalEvaluator:
         assert hit_rate.value == 0.5
 
     def test_skips_unanswerable_cases(self, eval_settings):
-        store = MagicMock()
-        evaluator = RetrievalEvaluator(store, eval_settings)
+        retriever = MagicMock()
+        evaluator = RetrievalEvaluator(retriever, eval_settings)
         cases = [_make_case(expected_refuses=True, expected_source_files=[])]
         result = evaluator.evaluate(cases)
 
         assert result.total_cases == 0
-        store.search_similar.assert_not_called()
+        retriever.search.assert_not_called()
 
-    def test_empty_results_from_store(self, eval_settings):
-        store = MagicMock()
-        store.search_similar.return_value = []
+    def test_empty_results_from_retriever(self, eval_settings):
+        retriever = MagicMock()
+        retriever.search.return_value = []
 
-        evaluator = RetrievalEvaluator(store, eval_settings)
+        evaluator = RetrievalEvaluator(retriever, eval_settings)
         cases = [_make_case(expected_source_files=["policies/PLY-FL-001.txt"])]
         result = evaluator.evaluate(cases)
 
@@ -190,8 +190,8 @@ class TestRetrievalEvaluator:
         assert precision.value == 0.0
 
     def test_empty_cases_list(self, eval_settings):
-        store = MagicMock()
-        evaluator = RetrievalEvaluator(store, eval_settings)
+        retriever = MagicMock()
+        evaluator = RetrievalEvaluator(retriever, eval_settings)
         result = evaluator.evaluate([])
 
         assert result.passed is True
@@ -199,13 +199,13 @@ class TestRetrievalEvaluator:
         assert result.metrics == []
 
     def test_case_results_contain_details(self, eval_settings):
-        store = MagicMock()
-        store.search_similar.return_value = [
+        retriever = MagicMock()
+        retriever.search.return_value = [
             _make_chunk(source="policies/PLY-FL-001.txt"),
             _make_chunk(source="wrong.txt"),
         ]
 
-        evaluator = RetrievalEvaluator(store, eval_settings)
+        evaluator = RetrievalEvaluator(retriever, eval_settings)
         cases = [_make_case(expected_source_files=["policies/PLY-FL-001.txt"])]
         result = evaluator.evaluate(cases)
 
@@ -216,12 +216,12 @@ class TestRetrievalEvaluator:
         assert "1 relevant" in cr.details
 
     def test_recall_with_multiple_expected_sources(self, eval_settings):
-        store = MagicMock()
-        store.search_similar.return_value = [
+        retriever = MagicMock()
+        retriever.search.return_value = [
             _make_chunk(source="claims/CLM-FL-2024-001.txt"),
         ]
 
-        evaluator = RetrievalEvaluator(store, eval_settings)
+        evaluator = RetrievalEvaluator(retriever, eval_settings)
         cases = [
             _make_case(
                 expected_source_files=[
@@ -236,14 +236,14 @@ class TestRetrievalEvaluator:
         assert recall.value == 0.5
 
     def test_ndcg_perfect_ranking(self, eval_settings):
-        store = MagicMock()
-        store.search_similar.return_value = [
+        retriever = MagicMock()
+        retriever.search.return_value = [
             _make_chunk(source="policies/PLY-FL-001.txt"),
             _make_chunk(source="wrong.txt"),
             _make_chunk(source="also_wrong.txt"),
         ]
 
-        evaluator = RetrievalEvaluator(store, eval_settings)
+        evaluator = RetrievalEvaluator(retriever, eval_settings)
         cases = [_make_case(expected_source_files=["policies/PLY-FL-001.txt"])]
         result = evaluator.evaluate(cases)
 

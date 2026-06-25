@@ -157,3 +157,10 @@ def eval_settings():
         retrieval_ndcg_min=0.5,
         retrieval_top_k=3,
     )
+
+
+@pytest.fixture
+def mock_eval_retriever():
+    retriever = MagicMock()
+    retriever.search.return_value = []
+    return retriever

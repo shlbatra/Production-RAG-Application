@@ -1,13 +1,13 @@
 """Retrieval evaluator — measures search quality against golden cases.
 
-Calls DocumentStore.search_similar() for each case and compares results
-against expected_source_files and expected_chunk_contents.
+Uses the same retrieval strategy the app uses (similarity, BM25, or hybrid)
+and compares results against expected_source_files and expected_chunk_contents.
 """
 
 import logging
 import math
 
-from app.document_store import DocumentStore
+from app.retrieval import RetrievalStrategy
 from evals.config import EvalSettings
 from evals.models import CaseResult, EvalResult, GoldenCase, MetricResult
 
@@ -37,9 +37,9 @@ def _compute_dcg(relevance_flags: list[bool]) -> float:
 
 class RetrievalEvaluator:
     def __init__(
-        self, document_store: DocumentStore, settings: EvalSettings | None = None
+        self, retriever: RetrievalStrategy, settings: EvalSettings | None = None
     ) -> None:
-        self._store = document_store
+        self._retriever = retriever
         self._settings = settings or EvalSettings()
 
     def evaluate(self, cases: list[GoldenCase]) -> EvalResult:
@@ -56,7 +56,9 @@ class RetrievalEvaluator:
             if case.expected_refuses:
                 continue
 
-            results = self._store.search_similar(query=case.question, top_k=top_k)
+            results = self._retriever.search(
+                query=case.question, top_k=top_k, threshold=0.0
+            )
             relevance = [_is_relevant(r, case) for r in results]
 
             hit = any(relevance)

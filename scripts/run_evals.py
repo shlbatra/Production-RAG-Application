@@ -9,6 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.config import get_settings
 from app.document_store import DocumentStore
+from app.retrieval import get_retriever
 from evals.config import EvalSettings
 from evals.evaluators.retrieval_eval import RetrievalEvaluator
 from evals.loader import load_golden_set
@@ -58,7 +59,8 @@ def main() -> int:
         app_settings = get_settings()
         document_store = DocumentStore(app_settings)
         try:
-            evaluator = RetrievalEvaluator(document_store, eval_settings)
+            retriever = get_retriever(app_settings, document_store)
+            evaluator = RetrievalEvaluator(retriever, eval_settings)
             retrieval_cases = [c for c in cases if not c.expected_refuses]
             result = evaluator.evaluate(retrieval_cases)
             runner.add_result(result)
