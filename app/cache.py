@@ -39,7 +39,7 @@ class ResponseCache:
             value = self._redis.get(self._make_key(query))
             if value is not None:
                 self._redis.incr(self.KEY_PREFIX + "hits")
-                return value
+                return str(value)
             self._redis.incr(self.KEY_PREFIX + "misses")
             return None
         except redis.RedisError:
