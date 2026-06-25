@@ -181,3 +181,40 @@ class TestChunkingEvaluator:
         result = evaluator.evaluate([doc])
 
         assert result.case_results[0].case_id == "report.txt"
+
+    def test_context_prefix_stripped_for_size_compliance(self, tmp_path):
+        doc = tmp_path / "doc.txt"
+        doc.write_text("x" * 200)
+
+        body = "x" * 90
+        prefixed = f"[CONTEXT: POLICY | Insured: Alice]\n\n{body}"
+        chunker = _make_chunker([prefixed])
+        evaluator = ChunkingEvaluator(
+            chunker, _make_app_settings(chunk_size=100), _make_eval_settings()
+        )
+        result = evaluator.evaluate([doc])
+
+        size_metric = next(
+            m for m in result.metrics if m.name == "chunk_size_compliance"
+        )
+        assert size_metric.value == 1.0
+
+    def test_context_prefix_stripped_for_overlap(self, tmp_path):
+        doc = tmp_path / "doc.txt"
+        doc.write_text("A" * 100)
+
+        overlap_text = "A" * 20
+        chunk_a = f"[CONTEXT: HDR]\n\n{'B' * 80}{overlap_text}"
+        chunk_b = f"[CONTEXT: HDR]\n\n{overlap_text}{'C' * 80}"
+        chunker = _make_chunker([chunk_a, chunk_b])
+        evaluator = ChunkingEvaluator(
+            chunker,
+            _make_app_settings(chunk_size=200, chunk_overlap=20),
+            _make_eval_settings(),
+        )
+        result = evaluator.evaluate([doc])
+
+        overlap_metric = next(
+            m for m in result.metrics if m.name == "overlap_correctness"
+        )
+        assert overlap_metric.value == 1.0

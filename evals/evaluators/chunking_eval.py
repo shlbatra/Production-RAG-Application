@@ -17,6 +17,7 @@ from evals.models import CaseResult, EvalResult, MetricResult
 logger = logging.getLogger(__name__)
 
 SENTENCE_END = re.compile(r"[.!?]\s*$")
+CONTEXT_PREFIX = re.compile(r"^\[CONTEXT: [^\]]*\]\n\n")
 
 
 class ChunkingEvaluator:
@@ -147,10 +148,16 @@ class ChunkingEvaluator:
             failed_cases=len(case_results) - passed_cases,
         )
 
+    @staticmethod
+    def _strip_context_prefix(chunk: str) -> str:
+        """Remove the [CONTEXT: ...] prefix added by ContextualChunker."""
+        return CONTEXT_PREFIX.sub("", chunk)
+
     def _check_size_compliance(self, chunks: list[str]) -> tuple[int, int]:
-        """Count chunks within chunk_size ± 10%."""
+        """Count chunks whose body (excluding context prefix) is within chunk_size ± 10%."""
         max_allowed = self._chunk_size * 1.10
-        compliant = sum(1 for c in chunks if len(c) <= max_allowed)
+        bodies = [self._strip_context_prefix(c) for c in chunks]
+        compliant = sum(1 for b in bodies if len(b) <= max_allowed)
         return compliant, len(chunks)
 
     def _check_boundary_quality(self, chunks: list[str]) -> tuple[int, int]:
@@ -158,31 +165,34 @@ class ChunkingEvaluator:
         if len(chunks) <= 1:
             return len(chunks), len(chunks)
         ok = 0
-        for i, chunk in enumerate(chunks[:-1]):
-            if SENTENCE_END.search(chunk):
+        for chunk in chunks[:-1]:
+            body = self._strip_context_prefix(chunk)
+            if SENTENCE_END.search(body):
                 ok += 1
         ok += 1
         return ok, len(chunks)
 
     def _check_info_preservation(self, original: str, chunks: list[str]) -> float:
-        """Ratio of original non-whitespace characters preserved in joined chunks."""
+        """Ratio of original non-whitespace characters preserved in joined chunk bodies."""
         original_stripped = re.sub(r"\s+", "", original)
         if not original_stripped:
             return 1.0
-        joined_stripped = re.sub(r"\s+", "", "".join(chunks))
+        bodies = [self._strip_context_prefix(c) for c in chunks]
+        joined_stripped = re.sub(r"\s+", "", "".join(bodies))
         if len(joined_stripped) >= len(original_stripped):
             return 1.0
         return len(joined_stripped) / len(original_stripped)
 
     def _check_overlap_correctness(self, chunks: list[str]) -> tuple[int, int]:
-        """For adjacent chunk pairs, check that actual overlap is within ±20% of configured overlap."""
+        """For adjacent chunk pairs, check that body overlap is within ±20% of configured overlap."""
         if len(chunks) < 2 or self._chunk_overlap == 0:
             return 0, 0
+        bodies = [self._strip_context_prefix(c) for c in chunks]
         ok = 0
         total = 0
         tolerance = self._chunk_overlap * 0.20
-        for i in range(len(chunks) - 1):
-            actual_overlap = self._measure_overlap(chunks[i], chunks[i + 1])
+        for i in range(len(bodies) - 1):
+            actual_overlap = self._measure_overlap(bodies[i], bodies[i + 1])
             if abs(actual_overlap - self._chunk_overlap) <= max(tolerance, 20):
                 ok += 1
             total += 1

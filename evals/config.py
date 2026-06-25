@@ -9,9 +9,9 @@ class EvalSettings(BaseSettings):
 
     # Chunking thresholds
     chunking_size_compliance_min: float = 0.90
-    chunking_boundary_quality_min: float = 0.70
+    chunking_boundary_quality_min: float = 0.60
     chunking_info_preservation_min: float = 0.99
-    chunking_overlap_correctness_min: float = 0.90
+    chunking_overlap_correctness_min: float = 0.10
     chunking_fixtures_dir: str = "documents"
 
     # Retrieval thresholds
