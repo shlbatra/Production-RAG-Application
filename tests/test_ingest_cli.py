@@ -130,3 +130,39 @@ class TestMain:
         output = capsys.readouterr().out
         assert "1 succeeded" in output
         assert "1 failed" in output
+
+    @patch("scripts.ingest.ingest_document")
+    @patch("scripts.ingest.DocumentStore")
+    @patch("scripts.ingest.get_settings")
+    def test_clear_flag_deletes_before_ingesting(
+        self,
+        mock_get_settings,
+        mock_store_cls,
+        mock_ingest,
+        tmp_path,
+        monkeypatch,
+        capsys,
+    ):
+        pdf = tmp_path / "test.pdf"
+        pdf.write_bytes(b"fake-pdf")
+
+        settings = MagicMock()
+        settings.rag_enabled = True
+        mock_get_settings.return_value = settings
+
+        mock_store = mock_store_cls.return_value
+        mock_store.clear_all.return_value = 15
+
+        mock_ingest.return_value = {
+            "doc_id": "abc123",
+            "filename": "test.pdf",
+            "chunks_stored": 5,
+        }
+
+        monkeypatch.setattr("sys.argv", ["ingest.py", str(pdf), "--clear"])
+        main()
+
+        mock_store.clear_all.assert_called_once()
+        mock_ingest.assert_called_once()
+        output = capsys.readouterr().out
+        assert "Cleared 15 existing chunks" in output
