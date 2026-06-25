@@ -59,7 +59,7 @@ Replace the `ResponseCache` class internals with Redis via Upstash while keeping
 | File | Change |
 |---|---|
 | `app/cache.py` | Rewrite `ResponseCache` to use Redis |
-| `app/config.py` | Add `redis_url` setting |
+| ~~`app/config.py`~~ | ~~Add `redis_url` setting~~ DONE |
 | `app/main.py` | Pass `redis_url` to `ResponseCache`, add Redis health check |
 | `pyproject.toml` | Add `redis` + `fakeredis` dependencies |
 | `.env.example` | Add `REDIS_URL` example |

@@ -1,86 +1,83 @@
 """
 Response Caching Layer
-In-memory cache with TTL for LLM response deduplication.
+Redis-backed cache with TTL for LLM response deduplication.
 """
 
 import hashlib
-import time
+import logging
 from typing import Optional
 
-"""
-Limitations:
-  1. Lazy expiration — expired entries are only removed when someone tries to get() them. There's no background cleanup, so stale entries can sit in memory. In production with Redis, TTL expiration is automatic.
-  2. Not thread-safe — if multiple requests arrive simultaneously (FastAPI is async), concurrent reads/writes to self._cache could cause issues. In practice, Python's GIL makes simple dict operations atomic enough for this use case, but Redis
-  would be the proper solution.
-  3. No size limit — the cache can grow unbounded. In production, you'd want a max size with an eviction policy (like LRU — least recently used).
-"""
+import redis
+
+logger = logging.getLogger(__name__)
 
 
 class ResponseCache:
     """
-    In memory response cache with TTL (time-to-live)
-    In production, replace this with Redis for:
-    - Persistance across restarts
-    - Shared cache across multiple instances
-    - Built-in TTL management
+    Redis-backed response cache with TTL (time-to-live).
+    Uses Upstash Redis in Cloud Run, local Redis via Docker for development.
+    Gracefully degrades to cache misses if Redis is unreachable.
     """
 
-    def __init__(self, ttl_seconds: int = 300):
+    KEY_PREFIX = "rag:cache:"
+
+    def __init__(self, redis_url: str, ttl_seconds: int = 300):
+        self._redis = redis.Redis.from_url(redis_url, decode_responses=True)
         self.ttl = ttl_seconds
-        self._cache: dict[str, dict] = {}
-        self._hits = 0
-        self._misses = 0
 
     def _make_key(self, query: str) -> str:
-        """
-        Create cache key from normalized query
-        """
+        """Create cache key from normalized query."""
         normalized = query.lower().strip()
-        return hashlib.sha256(
-            normalized.encode()
-        ).hexdigest()  # What is Python ? and what is python ?, Hashing allows Fixed length and No special characters
+        return self.KEY_PREFIX + hashlib.sha256(normalized.encode()).hexdigest()
 
     def get(self, query: str) -> Optional[str]:
         """
-        Get cached response if it exists and hasnt expied.
-        Returns None on cache miss
+        Get cached response if it exists and hasn't expired.
+        Returns None on cache miss or Redis error.
         """
-        key = self._make_key(query)
+        try:
+            value = self._redis.get(self._make_key(query))
+            if value is not None:
+                self._redis.incr(self.KEY_PREFIX + "hits")
+                return value
+            self._redis.incr(self.KEY_PREFIX + "misses")
+            return None
+        except redis.RedisError:
+            logger.exception("Redis GET failed, treating as cache miss")
+            return None
 
-        if key in self._cache:
-            entry = self._cache[key]
-            # Check TTL
-            if time.time() - entry["timestamp"] < self.ttl:
-                self._hits += 1
-                return entry["response"]
-            else:
-                # Expired: remove it
-                del self._cache[key]
-
-        self._misses += 1
-        return None
-
-    def set(self, query: str, response: str):
-        """
-        Cache response. If the key already exists, this overwrites it — effectively refreshing both the response and the timestamp
-        """
-        key = self._make_key(query)
-        self._cache[key] = {
-            "response": response,
-            "timestamp": time.time(),
-            "query": query,
-        }
+    def set(self, query: str, response: str) -> None:
+        """Cache a response with TTL. Silently fails if Redis is unreachable."""
+        try:
+            self._redis.set(self._make_key(query), response, ex=self.ttl)
+        except redis.RedisError:
+            logger.exception("Redis SET failed, skipping cache write")
 
     @property
     def stats(self) -> dict:
-        """Cache performance statistics
-        @property makes this a computed attribute — you call cache.stats (no parentheses) instead of cache.stats()
-        """
-        total = self._hits + self._misses
-        hit_rate = self._hits / total if total > 0 else 0.0
-        return {
-            "hits": self._hits,
-            "misses": self._misses,
-            "hit_rate": f"{hit_rate:.1%}",
-            "cached_entries": len(self._cache),
-        }
+        """Cache performance statistics."""
+        try:
+            hits = int(self._redis.get(self.KEY_PREFIX + "hits") or 0)
+            misses = int(self._redis.get(self.KEY_PREFIX + "misses") or 0)
+            total = hits + misses
+            count = 0
+            for _ in self._redis.scan_iter(
+                match=self.KEY_PREFIX + "[a-f0-9]*", count=100
+            ):
+                count += 1
+            return {
+                "hits": hits,
+                "misses": misses,
+                "hit_rate": f"{(hits / total * 100) if total else 0:.1f}%",
+                "cached_entries": count,
+            }
+        except redis.RedisError:
+            logger.exception("Redis STATS failed")
+            return {"hits": 0, "misses": 0, "hit_rate": "0.0%", "cached_entries": 0}
+
+    def health_check(self) -> bool:
+        """Returns True if Redis is reachable."""
+        try:
+            return self._redis.ping()
+        except redis.RedisError:
+            return False
