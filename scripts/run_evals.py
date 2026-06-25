@@ -14,6 +14,7 @@ from app.retrieval import get_retriever
 from evals.config import EvalSettings
 from evals.evaluators.chunking_eval import ChunkingEvaluator
 from evals.evaluators.retrieval_eval import RetrievalEvaluator
+from evals.evaluators.generation_structural_eval import GenerationStructuralEvaluator
 from evals.evaluators.security_eval import SecurityEvaluator, load_security_vectors
 from evals.loader import load_golden_set
 from evals.runner import EvalRunner
@@ -23,7 +24,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run RAG pipeline evaluations")
     parser.add_argument(
         "--component",
-        choices=["chunking", "retrieval", "security"],
+        choices=["chunking", "retrieval", "security", "generation_structural"],
         help="Run a single component evaluator",
     )
     parser.add_argument("--category", help="Filter golden set by category")
@@ -64,7 +65,9 @@ def main() -> int:
 
     app_settings = get_settings()
     components_to_run = (
-        [args.component] if args.component else ["chunking", "security", "retrieval"]
+        [args.component]
+        if args.component
+        else ["chunking", "security", "retrieval", "generation_structural"]
     )
 
     if "chunking" in components_to_run:
@@ -99,6 +102,19 @@ def main() -> int:
             evaluator = RetrievalEvaluator(retriever, eval_settings)
             retrieval_cases = [c for c in cases if not c.expected_refuses]
             result = evaluator.evaluate(retrieval_cases)
+            runner.add_result(result)
+        finally:
+            document_store.close()
+
+    if "generation_structural" in components_to_run:
+        document_store = DocumentStore(app_settings)
+        try:
+            retriever = get_retriever(app_settings, document_store)
+            from app.agent import ProductionAgent
+
+            agent = ProductionAgent(retriever=retriever)
+            evaluator = GenerationStructuralEvaluator(agent, eval_settings)
+            result = evaluator.evaluate(cases)
             runner.add_result(result)
         finally:
             document_store.close()
