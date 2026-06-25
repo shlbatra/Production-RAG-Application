@@ -78,7 +78,7 @@ supabase/migrations/
 | Document Ingestion | `ingestion.py` | Parse → chunk → embed → store pipeline |
 | Document Parsing | `document_parser.py` | Protocol-based PDF and text parsing |
 | Error Handling + Retries | `agent.py` | Primary → fallback model with graceful degradation |
-| Response Caching | `cache.py` | In-memory cache for duplicate calls |
+| Response Caching | `cache.py` | Redis-backed cache with TTL (Upstash in prod, local Redis in dev) |
 | Rate Limiting | `main.py` + slowapi | Per-IP throttling |
 | Structured Logging | `monitoring.py` | JSON logs for production aggregation |
 | Metrics Collection | `monitoring.py` | Request count, latency, token usage |
@@ -122,6 +122,38 @@ psql -d "$SUPABASE_DATABASE_URL" -f supabase/migrations/002_add_full_text_search
 ```
 
 3. Add `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, and `SUPABASE_DATABASE_URL` to your `.env`. Use the **transaction pooler** connection string (Settings → Database → Connection string → Mode: Transaction, port 6543) rather than the direct connection (port 5432)
+
+### Redis Setup
+
+Response caching uses Redis. Docker Compose starts a local Redis automatically — no extra setup needed for `docker compose up`.
+
+For connecting to a **local Redis** outside Docker:
+
+```bash
+# Install redis-cli (macOS)
+brew install redis
+
+# Connect to local Docker Redis
+redis-cli -h localhost -p 6379
+
+# Useful commands
+KEYS "rag:cache:*"              # List cached entries
+TTL "rag:cache:<key>"           # Check TTL on a key
+GET "rag:cache:hits"            # Total cache hits
+GET "rag:cache:misses"          # Total cache misses
+FLUSHDB                         # Clear all cache entries
+```
+
+For **Upstash Redis** (production / Cloud Run):
+
+```bash
+# Connect via redis-cli with TLS
+redis-cli --tls -u rediss://default:<password>@<endpoint>.upstash.io:6379
+```
+
+Set `REDIS_URL` in your `.env`:
+- Local: `redis://localhost:6379/0`
+- Upstash: `rediss://default:<password>@<endpoint>.upstash.io:6379` (note `rediss://` with double s for TLS)
 
 ### Docker
 
@@ -171,6 +203,7 @@ See `.env.example` for the full list. Key variables:
 | `RAG_SIMILARITY_THRESHOLD` | Minimum similarity score | `0.7` |
 | `RATE_LIMIT` | Rate limit per IP | `20/minute` |
 | `CACHE_TTL_SECONDS` | Cache entry lifetime | `300` |
+| `REDIS_URL` | Redis connection string | (required) |
 
 ## API Endpoints
 
