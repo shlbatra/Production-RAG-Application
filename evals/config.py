@@ -10,7 +10,7 @@ class EvalSettings(BaseSettings):
     # Retrieval thresholds
     retrieval_hit_rate_min: float = 0.90
     retrieval_mrr_min: float = 0.70
-    retrieval_precision_min: float = 0.20
+    retrieval_precision_min: float = 0.50
     retrieval_recall_min: float = 0.70
     retrieval_ndcg_min: float = 0.65
     retrieval_top_k: int = 5

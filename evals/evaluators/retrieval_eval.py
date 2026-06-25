@@ -66,7 +66,7 @@ class RetrievalEvaluator:
                 hit_count += 1
 
             logger.debug(
-                "[%s] query=%r | expected=%s | got=%s | hit=%s",
+                "[%s] query=%r | expected=%s | got=%s | hit=%s\n",
                 case.id,
                 case.question,
                 case.expected_source_files,
