@@ -14,6 +14,7 @@ from app.retrieval import get_retriever
 from evals.config import EvalSettings
 from evals.evaluators.chunking_eval import ChunkingEvaluator
 from evals.evaluators.retrieval_eval import RetrievalEvaluator
+from evals.evaluators.security_eval import SecurityEvaluator, load_security_vectors
 from evals.loader import load_golden_set
 from evals.runner import EvalRunner
 
@@ -22,7 +23,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run RAG pipeline evaluations")
     parser.add_argument(
         "--component",
-        choices=["chunking", "retrieval"],
+        choices=["chunking", "retrieval", "security"],
         help="Run a single component evaluator",
     )
     parser.add_argument("--category", help="Filter golden set by category")
@@ -63,7 +64,7 @@ def main() -> int:
 
     app_settings = get_settings()
     components_to_run = (
-        [args.component] if args.component else ["chunking", "retrieval"]
+        [args.component] if args.component else ["chunking", "security", "retrieval"]
     )
 
     if "chunking" in components_to_run:
@@ -76,6 +77,20 @@ def main() -> int:
             runner.add_result(result)
         else:
             print(f"Warning: no .txt files found in {fixtures_dir}")
+
+    if "security" in components_to_run:
+        from app.security import InputSanitizer
+
+        vectors = load_security_vectors(eval_settings.security_vectors_path)
+        if vectors:
+            sanitizer = InputSanitizer()
+            evaluator = SecurityEvaluator(sanitizer, eval_settings)
+            result = evaluator.evaluate(vectors)
+            runner.add_result(result)
+        else:
+            print(
+                f"Warning: no security vectors found at {eval_settings.security_vectors_path}"
+            )
 
     if "retrieval" in components_to_run:
         document_store = DocumentStore(app_settings)

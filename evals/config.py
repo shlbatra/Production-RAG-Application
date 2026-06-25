@@ -14,6 +14,11 @@ class EvalSettings(BaseSettings):
     chunking_overlap_correctness_min: float = 0.10
     chunking_fixtures_dir: str = "documents"
 
+    # Security thresholds
+    security_injection_detection_min: float = 0.95
+    security_false_positive_max: float = 0.05
+    security_vectors_path: str = "evals/fixtures/security_vectors.jsonl"
+
     # Retrieval thresholds
     retrieval_hit_rate_min: float = 0.90
     retrieval_mrr_min: float = 0.70
