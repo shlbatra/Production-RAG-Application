@@ -2,13 +2,18 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from app.chunking import ChunkingStrategy, RecursiveChunker, get_chunker
+from app.chunking import ChunkingStrategy, ContextualChunker, RecursiveChunker, get_chunker
 
 
-def _mock_settings(chunk_size: int = 1000, chunk_overlap: int = 200):
+def _mock_settings(
+    chunk_size: int = 1000,
+    chunk_overlap: int = 200,
+    context_header_lines: int = 5,
+):
     s = MagicMock()
     s.rag_chunk_size = chunk_size
     s.rag_chunk_overlap = chunk_overlap
+    s.rag_context_header_lines = context_header_lines
     return s
 
 
@@ -79,6 +84,68 @@ class TestGetChunker:
         cls = get_chunker(self._make_settings("recursive"))
         assert cls is RecursiveChunker
 
+    def test_returns_contextual_chunker_class(self):
+        cls = get_chunker(self._make_settings("contextual"))
+        assert cls is ContextualChunker
+
     def test_raises_for_unknown_strategy(self):
         with pytest.raises(ValueError, match="Unknown chunking strategy"):
             get_chunker(self._make_settings("unknown"))
+
+
+class TestContextualChunker:
+    def _make_chunker(
+        self, header_lines: int = 5, chunk_size: int = 1000, chunk_overlap: int = 0
+    ):
+        with patch(
+            "app.chunking.get_settings",
+            return_value=_mock_settings(
+                chunk_size=chunk_size,
+                chunk_overlap=chunk_overlap,
+                context_header_lines=header_lines,
+            ),
+        ):
+            return ContextualChunker()
+
+    def test_prepends_header_to_every_chunk(self):
+        chunker = self._make_chunker(header_lines=2, chunk_size=30)
+        text = "POLICY NUMBER: PLY-001\nInsured: Alice\n\nCoverage A: $100k\n\nCoverage B: $50k"
+        chunks = chunker.chunk(text)
+        assert len(chunks) >= 2
+        for chunk in chunks:
+            assert chunk.startswith("[CONTEXT: ")
+            assert "PLY-001" in chunk
+            assert "Alice" in chunk
+
+    def test_skips_separator_lines(self):
+        chunker = self._make_chunker(header_lines=3)
+        text = "Title Line\n══════════\n----------\nReal Line Two\nReal Line Three\n\nBody text here."
+        chunks = chunker.chunk(text)
+        header_part = chunks[0].split("]\n\n", 1)[0]
+        assert "══════════" not in header_part
+        assert "----------" not in header_part
+        assert "Title Line" in header_part
+        assert "Real Line Two" in header_part
+        assert "Real Line Three" in header_part
+
+    def test_empty_document(self):
+        chunker = self._make_chunker()
+        chunks = chunker.chunk("")
+        assert chunks == []
+
+    def test_header_fewer_lines_than_setting(self):
+        chunker = self._make_chunker(header_lines=10)
+        text = "Only One Line\n\nBody content."
+        chunks = chunker.chunk(text)
+        assert len(chunks) >= 1
+        assert "[CONTEXT: Only One Line | Body content.]" in chunks[0]
+
+    def test_first_chunk_has_same_prefix_format(self):
+        chunker = self._make_chunker(header_lines=2, chunk_size=30)
+        text = "Header One\nHeader Two\n\nChunk one text.\n\nChunk two text."
+        chunks = chunker.chunk(text)
+        assert chunks[0].startswith("[CONTEXT: Header One | Header Two]\n\n")
+
+    def test_satisfies_protocol(self):
+        chunker = self._make_chunker()
+        assert isinstance(chunker, ChunkingStrategy)

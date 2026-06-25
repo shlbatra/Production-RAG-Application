@@ -29,7 +29,8 @@ class Settings(BaseSettings):
 
     # RAG Settings
     embedding_model: str = "text-embedding-3-small"
-    rag_chunking_strategy: str = "recursive"
+    rag_chunking_strategy: str = "contextual"
+    rag_context_header_lines: int = 5
     rag_chunk_size: int = 1000
     rag_chunk_overlap: int = 200
     rag_retrieval_strategy: str = "hybrid"

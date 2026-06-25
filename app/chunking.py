@@ -30,8 +30,40 @@ class RecursiveChunker:
         return self._splitter.split_text(text)
 
 
-_STRATEGY_MAP: dict[str, type[RecursiveChunker]] = {
+class ContextualChunker:
+    """Wraps RecursiveChunker, prepending a document header to every chunk."""
+
+    def __init__(self) -> None:
+        settings = get_settings()
+        self._base = RecursiveChunker()
+        self._header_lines = settings.rag_context_header_lines
+
+    def _extract_header(self, text: str) -> str:
+        """Extract first N non-blank, non-decorative lines as a context prefix."""
+        lines: list[str] = []
+        for line in text.splitlines():
+            stripped = line.strip()
+            if not stripped:
+                continue
+            if all(c in "=═─-" for c in stripped):
+                continue
+            lines.append(stripped)
+            if len(lines) >= self._header_lines:
+                break
+        return " | ".join(lines)
+
+    def chunk(self, text: str) -> list[str]:
+        header = self._extract_header(text)
+        chunks = self._base.chunk(text)
+        if not header:
+            return chunks
+        prefix = f"[CONTEXT: {header}]\n\n"
+        return [prefix + chunk for chunk in chunks]
+
+
+_STRATEGY_MAP: dict[str, type] = {
     "recursive": RecursiveChunker,
+    "contextual": ContextualChunker,
 }
 
 

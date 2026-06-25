@@ -43,9 +43,10 @@ def mock_conn():
 @pytest.fixture
 def ingestion_settings():
     s = MagicMock()
-    s.rag_chunking_strategy = "recursive"
+    s.rag_chunking_strategy = "contextual"
     s.rag_chunk_size = 20
     s.rag_chunk_overlap = 0
+    s.rag_context_header_lines = 5
     return s
 
 
