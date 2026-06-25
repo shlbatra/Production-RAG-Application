@@ -5,7 +5,7 @@ Uses a Protocol so new strategies can be added without touching existing code:
 implement chunk(text) -> list[str] and add a mapping entry in _CHUNKER_MAP.
 """
 
-from typing import Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable, Callable
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -60,8 +60,6 @@ class ContextualChunker:
         prefix = f"[CONTEXT: {header}]\n\n"
         return [prefix + chunk for chunk in chunks]
 
-
-from typing import Callable
 
 _CHUNKER_MAP: dict[str, Callable[[], ChunkingStrategy]] = {
     "recursive": lambda: RecursiveChunker(),
