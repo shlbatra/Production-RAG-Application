@@ -143,3 +143,17 @@ def mock_document_store():
         },
     ]
     return store
+
+
+@pytest.fixture
+def eval_settings():
+    from evals.config import EvalSettings
+
+    return EvalSettings(
+        retrieval_hit_rate_min=0.5,
+        retrieval_mrr_min=0.5,
+        retrieval_precision_min=0.3,
+        retrieval_recall_min=0.5,
+        retrieval_ndcg_min=0.5,
+        retrieval_top_k=3,
+    )

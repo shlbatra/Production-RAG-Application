@@ -3,9 +3,6 @@
 import math
 from unittest.mock import MagicMock
 
-import pytest
-
-from evals.config import EvalSettings
 from evals.evaluators.retrieval_eval import (
     RetrievalEvaluator,
     _compute_dcg,
@@ -90,18 +87,7 @@ class TestComputeDcg:
 
 
 class TestRetrievalEvaluator:
-    @pytest.fixture
-    def settings(self):
-        return EvalSettings(
-            retrieval_hit_rate_min=0.5,
-            retrieval_mrr_min=0.5,
-            retrieval_precision_min=0.3,
-            retrieval_recall_min=0.5,
-            retrieval_ndcg_min=0.5,
-            retrieval_top_k=3,
-        )
-
-    def test_perfect_retrieval(self, settings):
+    def test_perfect_retrieval(self, eval_settings):
         store = MagicMock()
         store.search_similar.return_value = [
             _make_chunk(
@@ -109,7 +95,7 @@ class TestRetrievalEvaluator:
             ),
         ]
 
-        evaluator = RetrievalEvaluator(store, settings)
+        evaluator = RetrievalEvaluator(store, eval_settings)
         cases = [
             _make_case(
                 expected_source_files=["policies/PLY-FL-001.txt"],
@@ -128,14 +114,14 @@ class TestRetrievalEvaluator:
         mrr = next(m for m in result.metrics if m.name == "mrr")
         assert mrr.value == 1.0
 
-    def test_no_relevant_results(self, settings):
+    def test_no_relevant_results(self, eval_settings):
         store = MagicMock()
         store.search_similar.return_value = [
             _make_chunk(source="wrong.txt"),
             _make_chunk(source="also_wrong.txt"),
         ]
 
-        evaluator = RetrievalEvaluator(store, settings)
+        evaluator = RetrievalEvaluator(store, eval_settings)
         cases = [_make_case(expected_source_files=["policies/PLY-FL-001.txt"])]
         result = evaluator.evaluate(cases)
 
@@ -143,28 +129,28 @@ class TestRetrievalEvaluator:
         assert hit_rate.value == 0.0
         assert hit_rate.passed is False
 
-    def test_relevant_at_position_two(self, settings):
+    def test_relevant_at_position_two(self, eval_settings):
         store = MagicMock()
         store.search_similar.return_value = [
             _make_chunk(source="wrong.txt"),
             _make_chunk(source="policies/PLY-FL-001.txt"),
         ]
 
-        evaluator = RetrievalEvaluator(store, settings)
+        evaluator = RetrievalEvaluator(store, eval_settings)
         cases = [_make_case(expected_source_files=["policies/PLY-FL-001.txt"])]
         result = evaluator.evaluate(cases)
 
         mrr = next(m for m in result.metrics if m.name == "mrr")
         assert mrr.value == 0.5
 
-    def test_multiple_cases_aggregation(self, settings):
+    def test_multiple_cases_aggregation(self, eval_settings):
         store = MagicMock()
         store.search_similar.side_effect = [
             [_make_chunk(source="policies/PLY-FL-001.txt")],
             [_make_chunk(source="wrong.txt")],
         ]
 
-        evaluator = RetrievalEvaluator(store, settings)
+        evaluator = RetrievalEvaluator(store, eval_settings)
         cases = [
             _make_case(id="case-1", expected_source_files=["policies/PLY-FL-001.txt"]),
             _make_case(
@@ -180,20 +166,20 @@ class TestRetrievalEvaluator:
         hit_rate = next(m for m in result.metrics if m.name == "hit_rate")
         assert hit_rate.value == 0.5
 
-    def test_skips_unanswerable_cases(self, settings):
+    def test_skips_unanswerable_cases(self, eval_settings):
         store = MagicMock()
-        evaluator = RetrievalEvaluator(store, settings)
+        evaluator = RetrievalEvaluator(store, eval_settings)
         cases = [_make_case(expected_refuses=True, expected_source_files=[])]
         result = evaluator.evaluate(cases)
 
         assert result.total_cases == 0
         store.search_similar.assert_not_called()
 
-    def test_empty_results_from_store(self, settings):
+    def test_empty_results_from_store(self, eval_settings):
         store = MagicMock()
         store.search_similar.return_value = []
 
-        evaluator = RetrievalEvaluator(store, settings)
+        evaluator = RetrievalEvaluator(store, eval_settings)
         cases = [_make_case(expected_source_files=["policies/PLY-FL-001.txt"])]
         result = evaluator.evaluate(cases)
 
@@ -203,23 +189,23 @@ class TestRetrievalEvaluator:
         precision = next(m for m in result.metrics if m.name == "precision@k")
         assert precision.value == 0.0
 
-    def test_empty_cases_list(self, settings):
+    def test_empty_cases_list(self, eval_settings):
         store = MagicMock()
-        evaluator = RetrievalEvaluator(store, settings)
+        evaluator = RetrievalEvaluator(store, eval_settings)
         result = evaluator.evaluate([])
 
         assert result.passed is True
         assert result.total_cases == 0
         assert result.metrics == []
 
-    def test_case_results_contain_details(self, settings):
+    def test_case_results_contain_details(self, eval_settings):
         store = MagicMock()
         store.search_similar.return_value = [
             _make_chunk(source="policies/PLY-FL-001.txt"),
             _make_chunk(source="wrong.txt"),
         ]
 
-        evaluator = RetrievalEvaluator(store, settings)
+        evaluator = RetrievalEvaluator(store, eval_settings)
         cases = [_make_case(expected_source_files=["policies/PLY-FL-001.txt"])]
         result = evaluator.evaluate(cases)
 
@@ -229,13 +215,13 @@ class TestRetrievalEvaluator:
         assert "Retrieved 2 chunks" in cr.details
         assert "1 relevant" in cr.details
 
-    def test_recall_with_multiple_expected_sources(self, settings):
+    def test_recall_with_multiple_expected_sources(self, eval_settings):
         store = MagicMock()
         store.search_similar.return_value = [
             _make_chunk(source="claims/CLM-FL-2024-001.txt"),
         ]
 
-        evaluator = RetrievalEvaluator(store, settings)
+        evaluator = RetrievalEvaluator(store, eval_settings)
         cases = [
             _make_case(
                 expected_source_files=[
@@ -249,7 +235,7 @@ class TestRetrievalEvaluator:
         recall = next(m for m in result.metrics if m.name == "recall@k")
         assert recall.value == 0.5
 
-    def test_ndcg_perfect_ranking(self, settings):
+    def test_ndcg_perfect_ranking(self, eval_settings):
         store = MagicMock()
         store.search_similar.return_value = [
             _make_chunk(source="policies/PLY-FL-001.txt"),
@@ -257,7 +243,7 @@ class TestRetrievalEvaluator:
             _make_chunk(source="also_wrong.txt"),
         ]
 
-        evaluator = RetrievalEvaluator(store, settings)
+        evaluator = RetrievalEvaluator(store, eval_settings)
         cases = [_make_case(expected_source_files=["policies/PLY-FL-001.txt"])]
         result = evaluator.evaluate(cases)
 
