@@ -26,6 +26,13 @@ _REFUSAL_PATTERNS = [
     "not contain relevant information",
     "cannot find relevant information",
     "don't have the information needed",
+    "don't have access to specific",
+    "don't have access to that",
+    "i don't have access to",
+    "you may need to contact",
+    "could you please provide more details",
+    "i'm not able to provide specific",
+    "i do not have",
 ]
 
 _ERROR_PATTERNS = [

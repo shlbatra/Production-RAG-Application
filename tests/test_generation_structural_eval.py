@@ -81,6 +81,15 @@ class TestRefusalDetection:
         assert _is_refusal("There is no relevant information available.")
         assert _is_refusal("I'm unable to answer that question.")
 
+    def test_detects_access_denial_patterns(self):
+        assert _is_refusal(
+            "I don't have access to specific claim details or investigation outcomes."
+        )
+        assert _is_refusal(
+            "Could you please provide more details about the Florida property?"
+        )
+        assert _is_refusal("You may need to contact the insurance company.")
+
     def test_normal_response_is_not_refusal(self):
         assert not _is_refusal("The coverage limit is $350,000.")
         assert not _is_refusal(
