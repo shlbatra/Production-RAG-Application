@@ -1,7 +1,4 @@
-from pathlib import Path
 from unittest.mock import MagicMock
-
-import pytest
 
 from evals.config import EvalSettings
 from evals.evaluators.chunking_eval import ChunkingEvaluator
