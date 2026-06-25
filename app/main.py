@@ -76,7 +76,9 @@ async def lifespan(app: FastAPI):
 
     # Initialize components
     security = SecurityPipeline(enable_pii_detection=settings.enable_pii_detection)
-    cache = ResponseCache(ttl_seconds=settings.cache_ttl_seconds)
+    cache = ResponseCache(
+        redis_url=settings.redis_url, ttl_seconds=settings.cache_ttl_seconds
+    )
     metrics = MetricsCollector()
     retriever = None
     if settings.rag_enabled:

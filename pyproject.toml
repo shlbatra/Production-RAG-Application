@@ -25,6 +25,7 @@ dependencies = [
     "pypdf>=5.0.0",
     "python-multipart>=0.0.20",
     "langchain-text-splitters>=0.3.0",
+    "redis>=5.0.0",
 ]
 
 [dependency-groups]
@@ -35,4 +36,5 @@ dev = [
     "types-psycopg2>=2.9.0",
     "pytest>=9.0.2",
     "ruff>=0.15.17",
+    "fakeredis>=2.0.0",
 ]
