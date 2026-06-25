@@ -79,6 +79,7 @@ class TestHealthCheck:
         assert cache.health_check() is True
 
 
+# Redis crash should never take down the LLM application — degrade to cache misses instead
 class TestGracefulDegradation:
     def test_get_returns_none_when_redis_is_down(self, cache):
         with patch.object(
