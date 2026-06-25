@@ -205,6 +205,40 @@ See `.env.example` for the full list. Key variables:
 | `CACHE_TTL_SECONDS` | Cache entry lifetime | `300` |
 | `REDIS_URL` | Redis connection string | (required) |
 
+## Evaluations
+
+The project includes a golden-set-driven evaluation framework for measuring retrieval quality. Evaluations run against the live vector store using curated test cases.
+
+```bash
+# Run retrieval eval against all golden cases
+uv run python scripts/run_evals.py
+
+# Single component
+uv run python scripts/run_evals.py --component retrieval
+
+# Filter by category
+uv run python scripts/run_evals.py --category factual
+
+# Smoke test with limited cases
+uv run python scripts/run_evals.py --max-cases 5
+
+# Write JSON + markdown reports to evals/results/
+uv run python scripts/run_evals.py --report
+
+# CI mode — exits with code 1 if any metric fails its threshold
+uv run python scripts/run_evals.py --ci
+
+# Debug logging
+uv run python scripts/run_evals.py -v
+
+# Combine flags
+uv run python scripts/run_evals.py --component retrieval --max-cases 5 --report --ci
+```
+
+**Retrieval metrics measured**: Hit Rate, MRR, Precision@k, Recall@k, NDCG@k
+
+**Requirements**: The eval runner connects to the Supabase vector store (uses `.env` credentials), so documents must be ingested first. Unit tests (`uv run pytest tests/test_retrieval_eval.py`) use mocks and need no database.
+
 ## API Endpoints
 
 | Method | Path | Description |
