@@ -83,7 +83,7 @@ class DocumentStore:
 
     def full_text_search(self, query: str, top_k: int | None = None) -> list[dict]:
         """Keyword-based search using Postgres tsvector/tsquery via bm25_search RPC."""
-        top_k = top_k or self._top_k
+        top_k = top_k if top_k is not None else self._top_k
         with self._conn() as conn:
             with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
                 cur.execute(
@@ -106,8 +106,8 @@ class DocumentStore:
         top_k: int | None = None,
         threshold: float | None = None,
     ) -> list[dict]:
-        top_k = top_k or self._top_k
-        threshold = threshold or self._threshold
+        top_k = top_k if top_k is not None else self._top_k
+        threshold = threshold if threshold is not None else self._threshold
         embedding = self.generate_embedding(query)
 
         with self._conn() as conn:
