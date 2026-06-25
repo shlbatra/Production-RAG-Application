@@ -17,12 +17,14 @@ from app.config import get_settings
 
 logger = logging.getLogger(__name__)
 
-RAG_SYSTEM_PROMPT = (
-    "You are a helpful assistant. Use the following retrieved documents to answer "
-    "the user's question. If the documents don't contain relevant information, "
-    "say you don't have sufficient context to answer the question.\n\n"
-    "Retrieved Documents:\n"
+RAG_SYSTEM_PROMPT_BASE = (
+    "You are a helpful assistant that answers questions based on retrieved documents. "
+    "If no documents were retrieved or the documents don't contain relevant information, "
+    "say you don't have sufficient context to answer the question. "
+    "Do not answer from general knowledge."
 )
+
+RAG_SYSTEM_PROMPT_DOCS_HEADER = "\n\nRetrieved Documents:\n"
 
 
 class AgentState(TypedDict):
@@ -99,18 +101,23 @@ class ProductionAgent:
                 logger.exception("RAG retrieval failed, degrading gracefully")
                 return {"context": [], "sources": []}
 
+        def _build_messages(state: AgentState) -> list[BaseMessage]:
+            """Build message list with system prompt always included."""
+            messages = list(state["messages"])
+            system_content = RAG_SYSTEM_PROMPT_BASE
+            if state.get("context"):
+                chunks_text = "\n---\n".join(
+                    f"[Source: {c['metadata'].get('source', 'unknown')}]\n{c['content']}"
+                    for c in state["context"]
+                )
+                system_content += RAG_SYSTEM_PROMPT_DOCS_HEADER + chunks_text
+            messages.insert(0, SystemMessage(content=system_content))
+            return messages
+
         def process_message(state: AgentState) -> dict:
             """Try to process message with primary model"""
             try:
-                messages = list(state["messages"])
-                if state.get("context"):
-                    chunks_text = "\n---\n".join(
-                        f"[Source: {c['metadata'].get('source', 'unknown')}]\n{c['content']}"
-                        for c in state["context"]
-                    )
-                    messages.insert(
-                        0, SystemMessage(content=RAG_SYSTEM_PROMPT + chunks_text)
-                    )
+                messages = _build_messages(state)
                 response = self.primary_llm.invoke(messages)
                 return {"messages": [response], "error": None, "model_used": "primary"}
             except Exception as e:
@@ -123,15 +130,7 @@ class ProductionAgent:
         def try_fallback(state: AgentState) -> dict:
             """Fallback to secondary model."""
             try:
-                messages = list(state["messages"])
-                if state.get("context"):
-                    chunks_text = "\n---\n".join(
-                        f"[Source: {c['metadata'].get('source', 'unknown')}]\n{c['content']}"
-                        for c in state["context"]
-                    )
-                    messages.insert(
-                        0, SystemMessage(content=RAG_SYSTEM_PROMPT + chunks_text)
-                    )
+                messages = _build_messages(state)
                 response = self.fallback_llm.invoke(messages)
                 return {
                     "messages": [response],
