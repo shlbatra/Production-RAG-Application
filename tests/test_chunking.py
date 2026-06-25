@@ -85,13 +85,15 @@ class TestGetChunker:
         s.rag_chunking_strategy = strategy
         return s
 
-    def test_returns_recursive_chunker_class(self):
-        cls = get_chunker(self._make_settings("recursive"))
-        assert cls is RecursiveChunker
+    def test_returns_recursive_chunker_instance(self):
+        with patch("app.chunking.get_settings", return_value=_mock_settings()):
+            chunker = get_chunker(self._make_settings("recursive"))
+        assert isinstance(chunker, RecursiveChunker)
 
-    def test_returns_contextual_chunker_class(self):
-        cls = get_chunker(self._make_settings("contextual"))
-        assert cls is ContextualChunker
+    def test_returns_contextual_chunker_instance(self):
+        with patch("app.chunking.get_settings", return_value=_mock_settings()):
+            chunker = get_chunker(self._make_settings("contextual"))
+        assert isinstance(chunker, ContextualChunker)
 
     def test_raises_for_unknown_strategy(self):
         with pytest.raises(ValueError, match="Unknown chunking strategy"):
@@ -110,7 +112,7 @@ class TestContextualChunker:
                 context_header_lines=header_lines,
             ),
         ):
-            return ContextualChunker()
+            return ContextualChunker(RecursiveChunker())
 
     def test_prepends_header_to_every_chunk(self):
         chunker = self._make_chunker(header_lines=2, chunk_size=30)

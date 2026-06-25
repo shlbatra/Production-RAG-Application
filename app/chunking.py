@@ -31,11 +31,11 @@ class RecursiveChunker:
 
 
 class ContextualChunker:
-    """Wraps RecursiveChunker, prepending a document header to every chunk."""
+    """Decorator that prepends a document header to every chunk from a base chunker."""
 
-    def __init__(self) -> None:
+    def __init__(self, base: ChunkingStrategy) -> None:
         settings = get_settings()
-        self._base = RecursiveChunker()
+        self._base = base
         self._header_lines = settings.rag_context_header_lines
 
     def _extract_header(self, text: str) -> str:
@@ -61,18 +61,20 @@ class ContextualChunker:
         return [prefix + chunk for chunk in chunks]
 
 
-_CHUNKER_MAP: dict[str, type] = {
-    "recursive": RecursiveChunker,
-    "contextual": ContextualChunker,
+from typing import Callable
+
+_CHUNKER_MAP: dict[str, Callable[[], ChunkingStrategy]] = {
+    "recursive": lambda: RecursiveChunker(),
+    "contextual": lambda: ContextualChunker(RecursiveChunker()),
 }
 
 
-def get_chunker(settings: Settings) -> type:
-    cls = _CHUNKER_MAP.get(settings.rag_chunking_strategy)
-    if cls is None:
+def get_chunker(settings: Settings) -> ChunkingStrategy:
+    factory = _CHUNKER_MAP.get(settings.rag_chunking_strategy)
+    if factory is None:
         supported = sorted(_CHUNKER_MAP.keys())
         raise ValueError(
             f"Unknown chunking strategy '{settings.rag_chunking_strategy}'. "
             f"Supported: {', '.join(supported)}"
         )
-    return cls
+    return factory()
