@@ -57,7 +57,7 @@ class RetrievalEvaluator:
                 continue
 
             results = self._retriever.search(
-                query=case.question, top_k=top_k, threshold=0.0
+                query=case.question, top_k=top_k, threshold=0.7
             )
             relevance = [_is_relevant(r, case) for r in results]
 
