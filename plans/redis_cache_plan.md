@@ -65,13 +65,13 @@ Replace the `ResponseCache` class internals with Redis via Upstash while keeping
 | ~~`.env.example`~~ | ~~Add `REDIS_URL` example~~ DONE |
 | ~~`docker-compose.yml`~~ | ~~Add Redis service for local development~~ DONE |
 | ~~`tests/test_cache.py`~~ | ~~New test file using `fakeredis`~~ DONE |
-| `.github/workflows/deploy-cloud-run.yml` | Add `REDIS_URL` env var |
+| ~~`.github/workflows/deploy-cloud-run.yml`~~ | ~~Add `REDIS_URL` env var~~ DONE |
 
 ---
 
 ## Detailed Changes
 
-### 1. `app/config.py` — Add Redis Config
+### ~~1. `app/config.py` — Add Redis Config~~ DONE
 
 Add one field to `Settings`:
 
@@ -89,7 +89,7 @@ def redis_enabled(self) -> bool:
 
 ---
 
-### 2. `app/cache.py` — Redis-backed ResponseCache
+### ~~2. `app/cache.py` — Redis-backed ResponseCache~~ DONE
 
 Rewrite `ResponseCache` to use `redis.Redis`. Key design decisions:
 
@@ -170,7 +170,7 @@ class ResponseCache:
 
 ---
 
-### 3. `app/main.py` — Two Small Changes
+### ~~3. `app/main.py` — Two Small Changes~~ DONE
 
 **Lifespan** — pass `redis_url` to `ResponseCache`:
 
@@ -194,7 +194,7 @@ cache = ResponseCache(redis_url=settings.redis_url, ttl_seconds=settings.cache_t
 
 ---
 
-### 4. `docker-compose.yml` — Add Redis Service (Local Dev)
+### ~~4. `docker-compose.yml` — Add Redis Service (Local Dev)~~ DONE
 
 Local development uses a standard Redis container. The Upstash URL is only used in Cloud Run.
 
@@ -258,7 +258,7 @@ Dev (for testing without real Redis):
 
 ---
 
-### 7. `tests/test_cache.py` — Unit Tests with fakeredis
+### ~~7. `tests/test_cache.py` — Unit Tests with fakeredis~~ DONE
 
 Use `fakeredis` to test without a real Redis instance:
 
@@ -275,7 +275,7 @@ Use `fakeredis` to test without a real Redis instance:
 
 ---
 
-### 8. `.github/workflows/deploy-cloud-run.yml` — Add Upstash Redis URL
+### ~~8. `.github/workflows/deploy-cloud-run.yml` — Add Upstash Redis URL~~ DONE
 
 The Upstash URL contains credentials, so store it as a GCP Secret and reference via `--set-secrets`:
 
