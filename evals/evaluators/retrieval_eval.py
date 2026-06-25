@@ -36,7 +36,9 @@ def _compute_dcg(relevance_flags: list[bool]) -> float:
 
 
 class RetrievalEvaluator:
-    def __init__(self, document_store: DocumentStore, settings: EvalSettings | None = None) -> None:
+    def __init__(
+        self, document_store: DocumentStore, settings: EvalSettings | None = None
+    ) -> None:
         self._store = document_store
         self._settings = settings or EvalSettings()
 
@@ -78,7 +80,9 @@ class RetrievalEvaluator:
 
             dcg = _compute_dcg(relevance)
             ideal_relevant_count = min(total_relevant, top_k)
-            ideal_relevance = [True] * ideal_relevant_count + [False] * (top_k - ideal_relevant_count)
+            ideal_relevance = [True] * ideal_relevant_count + [False] * (
+                top_k - ideal_relevant_count
+            )
             idcg = _compute_dcg(ideal_relevance)
             ndcg = dcg / idcg if idcg > 0 else 0.0
             ndcgs.append(ndcg)
@@ -91,12 +95,14 @@ class RetrievalEvaluator:
                 "ndcg": ndcg,
             }
             case_passed = hit and recall >= self._settings.retrieval_recall_min
-            case_results.append(CaseResult(
-                case_id=case.id,
-                metrics=case_metrics,
-                passed=case_passed,
-                details=f"Retrieved {len(results)} chunks, {relevant_retrieved} relevant",
-            ))
+            case_results.append(
+                CaseResult(
+                    case_id=case.id,
+                    metrics=case_metrics,
+                    passed=case_passed,
+                    details=f"Retrieved {len(results)} chunks, {relevant_retrieved} relevant",
+                )
+            )
 
         evaluated_count = len(reciprocal_ranks)
         if evaluated_count == 0:

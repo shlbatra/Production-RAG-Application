@@ -17,12 +17,22 @@ from evals.runner import EvalRunner
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run RAG pipeline evaluations")
-    parser.add_argument("--component", choices=["retrieval"], help="Run a single component evaluator")
+    parser.add_argument(
+        "--component", choices=["retrieval"], help="Run a single component evaluator"
+    )
     parser.add_argument("--category", help="Filter golden set by category")
-    parser.add_argument("--max-cases", type=int, help="Limit number of cases (smoke test)")
-    parser.add_argument("--ci", action="store_true", help="Exit with code 1 on threshold failure")
-    parser.add_argument("--report", action="store_true", help="Write JSON and markdown reports")
-    parser.add_argument("--verbose", "-v", action="store_true", help="Enable debug logging")
+    parser.add_argument(
+        "--max-cases", type=int, help="Limit number of cases (smoke test)"
+    )
+    parser.add_argument(
+        "--ci", action="store_true", help="Exit with code 1 on threshold failure"
+    )
+    parser.add_argument(
+        "--report", action="store_true", help="Write JSON and markdown reports"
+    )
+    parser.add_argument(
+        "--verbose", "-v", action="store_true", help="Enable debug logging"
+    )
 
     args = parser.parse_args()
 

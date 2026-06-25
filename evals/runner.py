@@ -39,8 +39,7 @@ class EvalRunner:
             "timestamp": timestamp,
             "overall_passed": self.overall_passed,
             "components": {
-                name: result.model_dump()
-                for name, result in self._results.items()
+                name: result.model_dump() for name, result in self._results.items()
             },
         }
 
@@ -66,9 +65,11 @@ class EvalRunner:
             status = "PASSED" if component["passed"] else "FAILED"
             lines.append(f"## {name.title()} — {status}")
             lines.append("")
-            lines.append(f"Cases: {component['total_cases']} total, "
-                         f"{component['passed_cases']} passed, "
-                         f"{component['failed_cases']} failed")
+            lines.append(
+                f"Cases: {component['total_cases']} total, "
+                f"{component['passed_cases']} passed, "
+                f"{component['failed_cases']} failed"
+            )
             lines.append("")
 
             if component["metrics"]:
@@ -96,6 +97,8 @@ class EvalRunner:
             print(f"       Cases: {result.passed_cases}/{result.total_cases} passed")
             for m in result.metrics:
                 flag = "✓" if m.passed else "✗"
-                print(f"       {flag} {m.name}: {m.value:.4f} (threshold: {m.threshold:.2f})")
+                print(
+                    f"       {flag} {m.name}: {m.value:.4f} (threshold: {m.threshold:.2f})"
+                )
 
         print(f"\n{'=' * 60}\n")

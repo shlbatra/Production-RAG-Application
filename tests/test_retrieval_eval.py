@@ -6,7 +6,11 @@ from unittest.mock import MagicMock
 import pytest
 
 from evals.config import EvalSettings
-from evals.evaluators.retrieval_eval import RetrievalEvaluator, _compute_dcg, _is_relevant
+from evals.evaluators.retrieval_eval import (
+    RetrievalEvaluator,
+    _compute_dcg,
+    _is_relevant,
+)
 from evals.models import GoldenCase
 
 
@@ -24,7 +28,9 @@ def _make_case(**overrides) -> GoldenCase:
     return GoldenCase(**defaults)
 
 
-def _make_chunk(source: str, content: str = "some content", similarity: float = 0.9) -> dict:
+def _make_chunk(
+    source: str, content: str = "some content", similarity: float = 0.9
+) -> dict:
     return {
         "id": 1,
         "content": content,
@@ -98,14 +104,18 @@ class TestRetrievalEvaluator:
     def test_perfect_retrieval(self, settings):
         store = MagicMock()
         store.search_similar.return_value = [
-            _make_chunk(source="policies/PLY-FL-001.txt", content="Coverage A $350,000"),
+            _make_chunk(
+                source="policies/PLY-FL-001.txt", content="Coverage A $350,000"
+            ),
         ]
 
         evaluator = RetrievalEvaluator(store, settings)
-        cases = [_make_case(
-            expected_source_files=["policies/PLY-FL-001.txt"],
-            expected_chunk_contents=["Coverage A"],
-        )]
+        cases = [
+            _make_case(
+                expected_source_files=["policies/PLY-FL-001.txt"],
+                expected_chunk_contents=["Coverage A"],
+            )
+        ]
         result = evaluator.evaluate(cases)
 
         assert result.passed is True
@@ -157,7 +167,9 @@ class TestRetrievalEvaluator:
         evaluator = RetrievalEvaluator(store, settings)
         cases = [
             _make_case(id="case-1", expected_source_files=["policies/PLY-FL-001.txt"]),
-            _make_case(id="case-2", expected_source_files=["claims/CLM-FL-2024-001.txt"]),
+            _make_case(
+                id="case-2", expected_source_files=["claims/CLM-FL-2024-001.txt"]
+            ),
         ]
         result = evaluator.evaluate(cases)
 
@@ -224,9 +236,14 @@ class TestRetrievalEvaluator:
         ]
 
         evaluator = RetrievalEvaluator(store, settings)
-        cases = [_make_case(
-            expected_source_files=["claims/CLM-FL-2024-001.txt", "adjuster_notes/NOTE-001.txt"],
-        )]
+        cases = [
+            _make_case(
+                expected_source_files=[
+                    "claims/CLM-FL-2024-001.txt",
+                    "adjuster_notes/NOTE-001.txt",
+                ],
+            )
+        ]
         result = evaluator.evaluate(cases)
 
         recall = next(m for m in result.metrics if m.name == "recall@k")
