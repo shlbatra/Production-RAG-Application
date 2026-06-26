@@ -54,6 +54,12 @@ class Settings(BaseSettings):
     rate_limit: str = "20/minute"
     cache_ttl_seconds: int = 300
     max_retries: int = 3
+    max_tool_calls: int = 3
+
+    # Web search
+    web_search_enabled: bool = False
+    tavily_api_key: str = ""
+    web_search_max_results: int = 3
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 
