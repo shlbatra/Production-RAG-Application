@@ -99,7 +99,11 @@ def main() -> int:
         document_store = DocumentStore(app_settings)
         try:
             retriever = get_retriever(app_settings, document_store)
-            evaluator = RetrievalEvaluator(retriever, eval_settings)
+            evaluator = RetrievalEvaluator(
+                retriever,
+                eval_settings,
+                similarity_threshold=app_settings.rag_similarity_threshold,
+            )
             retrieval_cases = [c for c in cases if not c.expected_refuses]
             result = evaluator.evaluate(retrieval_cases)
             runner.add_result(result)
