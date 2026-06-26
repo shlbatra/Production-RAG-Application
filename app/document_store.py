@@ -81,7 +81,9 @@ class DocumentStore:
         logger.info("Inserted %d chunks", inserted)
         return inserted
 
-    def full_text_search(self, query: str, top_k: int | None = None) -> list[dict]:
+    def full_text_search(
+        self, query: str, top_k: int | None = None, min_score: float = 0.3
+    ) -> list[dict]:
         """Keyword-based search using Postgres tsvector/tsquery via bm25_search RPC."""
         top_k = top_k if top_k is not None else self._top_k
         with self._conn() as conn:
@@ -97,6 +99,7 @@ class DocumentStore:
             if max_score > 0:
                 for r in results:
                     r["similarity"] = round(r["similarity"] / max_score, 4)
+                results = [r for r in results if r["similarity"] >= min_score]
 
         return results
 
