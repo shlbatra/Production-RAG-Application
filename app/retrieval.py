@@ -72,7 +72,9 @@ class HybridRetriever:
         min_rrf_score = 0.8 / (self._k + 1)
         ranked = [
             (doc_id, score)
-            for doc_id, score in sorted(scores.items(), key=lambda x: x[1], reverse=True)
+            for doc_id, score in sorted(
+                scores.items(), key=lambda x: x[1], reverse=True
+            )
             if score >= min_rrf_score
         ][:top_k]
 
