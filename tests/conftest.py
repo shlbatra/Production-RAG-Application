@@ -16,7 +16,7 @@ def settings():
     s.embedding_model = "text-embedding-3-small"
     s.openai_api_key = "test-key"
     s.rag_top_k = 5
-    s.rag_similarity_threshold = 0.7
+    s.rag_similarity_threshold = 0.55
     s.db_pool_min_conn = 2
     s.db_pool_max_conn = 10
     return s
@@ -67,7 +67,7 @@ def mock_settings():
         s.openai_api_key = "test-key"
         s.max_retries = 3
         s.rag_top_k = 5
-        s.rag_similarity_threshold = 0.7
+        s.rag_similarity_threshold = 0.55
         mock.return_value = s
         yield s
 

@@ -43,7 +43,7 @@ class TestRetrieveContext:
         mock_retriever.search.assert_called_once_with(
             query="What is Python?",
             top_k=5,
-            threshold=0.7,
+            threshold=0.55,
         )
         assert result["sources"] == [
             {

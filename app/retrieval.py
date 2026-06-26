@@ -69,7 +69,12 @@ class HybridRetriever:
             scores[doc_id] = scores.get(doc_id, 0) + 1 / (self._k + rank + 1)
             docs[doc_id] = doc
 
-        ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:top_k]
+        min_rrf_score = 0.8 / (self._k + 1)
+        ranked = [
+            (doc_id, score)
+            for doc_id, score in sorted(scores.items(), key=lambda x: x[1], reverse=True)
+            if score >= min_rrf_score
+        ][:top_k]
 
         if ranked:
             max_score = ranked[0][1]

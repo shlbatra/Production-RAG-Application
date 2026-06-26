@@ -17,7 +17,7 @@ class TestInit:
 
         assert store._dsn == settings.supabase_database_url
         assert store._top_k == 5
-        assert store._threshold == 0.7
+        assert store._threshold == 0.55
         mock_emb.assert_called_once_with(
             model=settings.embedding_model,
             api_key=ANY,
@@ -131,7 +131,7 @@ class TestSearchSimilar:
 
         _, params = cursor.execute.call_args[0]
         assert params[1] == 5
-        assert params[2] == 0.7
+        assert params[2] == 0.55
 
 
 # DocumentStore.list_documents
