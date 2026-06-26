@@ -1,5 +1,7 @@
 # Tool Calling Plan
 
+*Updated 2026-06-26 — reflects system prompt split (PR #55) and retrieval quality filtering (PR #57).*
+
 ## Goal
 
 Add tool calling to the RAG agent so the LLM can **decide when to search** rather than always retrieving context upfront. Today the graph is linear: `retrieve → process → (fallback) → (error)`. With tool calling, the LLM receives the user question first, decides if it needs documents, calls a `search_documents` tool, reads the results, and then answers — an "agentic RAG" pattern.
@@ -19,8 +21,14 @@ Add tool calling to the RAG agent so the LLM can **decide when to search** rathe
 app/agent.py — ProductionAgent
 ├── AgentState (messages, error, retry_count, model_used, context, sources)
 ├── Graph: START → retrieve → process → [fallback | error | END]
-└── retrieve_context() always calls self.retriever.search()
+├── retrieve_context() always calls self.retriever.search()
+├── _build_messages() always injects system prompt (with or without docs)
+└── RAG_SYSTEM_PROMPT_BASE + RAG_SYSTEM_PROMPT_DOCS_HEADER (split prompt)
 ```
+
+Recent changes to be aware of:
+- **System prompt is always injected** — `_build_messages()` prepends `RAG_SYSTEM_PROMPT_BASE` to every request. When retrieval returns context, it appends `RAG_SYSTEM_PROMPT_DOCS_HEADER` + chunks. This helper and both prompt constants will be removed when moving to tool calling.
+- **Retrieval quality thresholds** — vector similarity threshold is 0.55 (not 0.7), BM25 has a 0.3 normalized score floor, and HybridRetriever has an RRF min-score filter (0.8/(k+1)). The `search_documents` tool wraps the retriever as-is, so these thresholds carry over automatically.
 
 The LLM (`ChatOpenAI`) is already from langchain-openai which supports OpenAI function/tool calling natively. LangGraph supports tool nodes out of the box.
 
@@ -49,9 +57,10 @@ def create_search_tool(retriever, top_k: int, threshold: float):
     return search_documents
 ```
 
-- Wraps the existing `RetrievalStrategy` — no changes to retrieval.py
+- Wraps the existing `RetrievalStrategy` — no changes to retrieval.py or document_store.py
 - Returns formatted text the LLM can reason over
-- `top_k` and `threshold` come from settings, same as today
+- `top_k` and `threshold` come from settings (currently top_k=5, threshold=0.55)
+- All retrieval quality filters (BM25 min_score=0.3, RRF min-score) apply automatically since the tool calls the same retriever
 
 ### 2. Modify the Agent Graph — `app/agent.py`
 
@@ -75,7 +84,7 @@ self.primary_llm = ChatOpenAI(...).bind_tools(tools)
 self.fallback_llm = ChatOpenAI(...).bind_tools(tools)
 ```
 
-**b) New `agent_node`** — replaces both `retrieve_context` and `process_message`:
+**b) New `agent_node`** — replaces `retrieve_context`, `_build_messages`, and `process_message`:
 ```python
 def agent_node(state: AgentState) -> dict:
     messages = list(state["messages"])
@@ -83,6 +92,8 @@ def agent_node(state: AgentState) -> dict:
     response = self.primary_llm.invoke(messages)
     return {"messages": [response], "model_used": "primary"}
 ```
+
+This eliminates `_build_messages()`, `RAG_SYSTEM_PROMPT_BASE`, and `RAG_SYSTEM_PROMPT_DOCS_HEADER` — the tool-aware `SYSTEM_PROMPT` replaces all three.
 
 **c) Routing function** — checks if the LLM wants to call a tool:
 ```python
@@ -161,11 +172,11 @@ The LLM's decision to escalate (docs → web → give up) is probabilistic. Thre
 if not results:
     return "NO_RESULTS: No relevant documents found in the knowledge base."
 
-if all(r["similarity"] < threshold for r in results):
+if all(r["similarity"] < 0.75 for r in results):
     return "LOW_RELEVANCE: Documents were found but none are highly relevant.\n\n" + formatted
 ```
 
-The LLM sees `NO_RESULTS` or `LOW_RELEVANCE` as a clear signal rather than guessing from content.
+Note: the vector threshold (0.55) and BM25 floor (0.3) already filter out weak results before they reach the tool. The `LOW_RELEVANCE` check here is a higher bar — it flags results that passed the retrieval filters but are still borderline. The LLM sees `NO_RESULTS` or `LOW_RELEVANCE` as a clear signal rather than guessing from content.
 
 **Layer 2 — Enforce tool ordering in `should_continue`.** Don't rely solely on the prompt — programmatically block `web_search` if `search_documents` hasn't been called yet:
 
@@ -210,7 +221,7 @@ SYSTEM_PROMPT = (
 
 ### 6. Update System Prompt
 
-The current `RAG_SYSTEM_PROMPT` assumes context is always injected. Replace with a tool-aware prompt:
+The current split prompt (`RAG_SYSTEM_PROMPT_BASE` + `RAG_SYSTEM_PROMPT_DOCS_HEADER`) always injects context via `_build_messages()`. With tool calling, the LLM decides when to search, so the prompt changes from "here are your documents" to "here are your tools":
 
 ```python
 SYSTEM_PROMPT = (
@@ -218,10 +229,13 @@ SYSTEM_PROMPT = (
     "When the user asks a question that might be answered by the knowledge base, "
     "use the search_documents tool to find relevant information before answering. "
     "If the tool returns no relevant results, say you don't have sufficient context. "
+    "Do not answer from general knowledge when the question is about the knowledge base. "
     "For general conversation or questions not related to the knowledge base, "
     "respond directly without searching."
 )
 ```
+
+This replaces `RAG_SYSTEM_PROMPT_BASE`, `RAG_SYSTEM_PROMPT_DOCS_HEADER`, and `_build_messages()` — all three are deleted.
 
 ### 7. Config — `app/config.py`
 
@@ -233,10 +247,10 @@ max_tool_calls: int = 3  # max search rounds per request
 
 ### 8. No Changes Needed
 
-- **`app/retrieval.py`** — untouched, tool wraps the existing retriever
+- **`app/retrieval.py`** — untouched, tool wraps the existing retriever (RRF min-score filter and threshold carry over)
+- **`app/document_store.py`** — untouched (BM25 min_score=0.3 floor carries over)
 - **`app/main.py`** — untouched, `agent.invoke()` signature stays the same
 - **`app/models.py`** — `ChatResponse.sources` already optional, works as-is
-- **`app/document_store.py`** — untouched
 - **Cache / security / monitoring** — untouched
 
 ### 9. Tests — `tests/test_agent.py`
@@ -320,7 +334,7 @@ Add `web_search` to the tools list when web search is enabled:
 ```python
 tools = []
 if self.rag_enabled:
-    tools.append(create_search_tool(retriever, settings.rag_top_k, settings.rag_similarity_threshold))
+    tools.append(create_search_tool(retriever, settings.rag_top_k, settings.rag_similarity_threshold))  # threshold=0.55
 if settings.web_search_enabled:
     tools.append(create_web_search_tool(max_results=settings.web_search_max_results))
 
