@@ -68,6 +68,9 @@ def mock_settings():
         s.max_retries = 3
         s.rag_top_k = 5
         s.rag_similarity_threshold = 0.55
+        s.max_tool_calls = 3
+        s.web_search_enabled = False
+        s.web_search_max_results = 3
         mock.return_value = s
         yield s
 

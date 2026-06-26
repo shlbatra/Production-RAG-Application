@@ -21,6 +21,7 @@ class SourceReference(BaseModel):
     source: str
     similarity: float
     chunk_preview: str
+    type: str = "document"
 
 
 class ChatResponse(BaseModel):
