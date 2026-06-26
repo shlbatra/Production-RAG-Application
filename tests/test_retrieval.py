@@ -70,6 +70,32 @@ class TestHybridRetriever:
         results = retriever.search(query="test", top_k=2, threshold=0.7)
         assert len(results) <= 2
 
+    def test_filters_low_scoring_bm25_only_results(self):
+        """Chunks that only appear in BM25 at low ranks should be filtered out."""
+        store = MagicMock()
+        store.search_similar.return_value = []
+        low_rank_docs = [
+            {
+                "id": i,
+                "content": f"doc {i}",
+                "metadata": {"source": f"{i}.pdf"},
+                "similarity": 0.5,
+            }
+            for i in range(20)
+        ]
+        store.full_text_search.return_value = low_rank_docs
+
+        retriever = HybridRetriever(document_store=store, k=60)
+        results = retriever.search(query="test", top_k=20, threshold=0.7)
+
+        # 1/(60 + rank+1): rank 0 → 0.01639, rank 19 → 0.01235
+        # min_rrf_score = 0.8/61 = 0.01311
+        # Ranks where 1/(60+rank+1) < 0.01311 → rank+1 > 60/0.01311 - 60 ≈ 16.3
+        # So ranks 0-15 pass (16 results), ranks 16-19 get filtered
+        assert len(results) < 20
+        for r in results:
+            assert r["id"] < 16
+
     def test_empty_results(self):
         store = MagicMock()
         store.search_similar.return_value = []

@@ -37,10 +37,14 @@ def _compute_dcg(relevance_flags: list[bool]) -> float:
 
 class RetrievalEvaluator:
     def __init__(
-        self, retriever: RetrievalStrategy, settings: EvalSettings | None = None
+        self,
+        retriever: RetrievalStrategy,
+        settings: EvalSettings | None = None,
+        similarity_threshold: float = 0.55,
     ) -> None:
         self._retriever = retriever
         self._settings = settings or EvalSettings()
+        self._threshold = similarity_threshold
 
     def evaluate(self, cases: list[GoldenCase]) -> EvalResult:
         top_k = self._settings.retrieval_top_k
@@ -57,7 +61,9 @@ class RetrievalEvaluator:
                 continue
 
             results = self._retriever.search(
-                query=case.question, top_k=top_k, threshold=0.7
+                query=case.question,
+                top_k=top_k,
+                threshold=self._threshold,
             )
             relevance = [_is_relevant(r, case) for r in results]
 

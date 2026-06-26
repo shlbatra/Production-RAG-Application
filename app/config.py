@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     rag_chunk_overlap: int = 200
     rag_retrieval_strategy: str = "hybrid"
     rag_top_k: int = 5
-    rag_similarity_threshold: float = 0.7
+    rag_similarity_threshold: float = 0.55
     max_upload_size_mb: int = 10
 
     # Redis
