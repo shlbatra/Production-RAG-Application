@@ -29,6 +29,16 @@ The system supports three retrieval strategies, configurable via `RAG_RETRIEVAL_
 
 Strategies follow a `RetrievalStrategy` Protocol (same pattern as `DocumentParser` and `ChunkingStrategy`), so new strategies can be added without touching existing code.
 
+**Retrieval quality thresholds:**
+
+| Layer | Threshold | Type | Where applied |
+|---|---|---|---|
+| Vector search | 0.55 | Absolute cosine similarity | In DB via `match_documents()` pre-filter |
+| BM25 search | 0.3 | Relative to best keyword match | In Python after score normalization |
+| Hybrid RRF | 0.01311 (`0.8/(k+1)`) | Raw RRF score floor | In Python before score normalization |
+
+The vector threshold gates the DB query — only chunks with cosine similarity >= 0.55 are returned. The BM25 floor drops keyword matches scoring below 30% of the best match after normalization. The RRF floor removes results that only weakly matched a single retriever, preventing keyword-only noise from surfacing when vector search returns nothing.
+
 ### LangGraph Agent Flow
 
 ```
@@ -200,7 +210,7 @@ See `.env.example` for the full list. Key variables:
 | `DB_POOL_MAX_CONN` | Maximum pooled DB connections | `10` |
 | `RAG_RETRIEVAL_STRATEGY` | Retrieval strategy | `hybrid` |
 | `RAG_TOP_K` | Number of chunks to retrieve | `5` |
-| `RAG_SIMILARITY_THRESHOLD` | Minimum similarity score | `0.7` |
+| `RAG_SIMILARITY_THRESHOLD` | Minimum similarity score | `0.55` |
 | `RATE_LIMIT` | Rate limit per IP | `20/minute` |
 | `CACHE_TTL_SECONDS` | Cache entry lifetime | `300` |
 | `REDIS_URL` | Redis connection string | (required) |
