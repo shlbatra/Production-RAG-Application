@@ -1,4 +1,4 @@
-# Fix: Always Send System Prompt to Agent
+# Fix: Always Send System Prompt to Agent (DONE)
 
 ## Problem
 

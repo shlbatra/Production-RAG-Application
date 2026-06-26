@@ -2,7 +2,11 @@ from unittest.mock import MagicMock, patch
 
 from langchain_core.messages import AIMessage
 
-from app.agent import RAG_SYSTEM_PROMPT, ProductionAgent
+from app.agent import (
+    RAG_SYSTEM_PROMPT_BASE,
+    RAG_SYSTEM_PROMPT_DOCS_HEADER,
+    ProductionAgent,
+)
 
 
 # ProductionAgent.__init__
@@ -91,12 +95,13 @@ class TestContextInjection:
         agent.invoke("What is Python?")
 
         call_args = mock_llm.invoke.call_args[0][0]
-        assert call_args[0].content.startswith(RAG_SYSTEM_PROMPT)
+        assert call_args[0].content.startswith(RAG_SYSTEM_PROMPT_BASE)
+        assert RAG_SYSTEM_PROMPT_DOCS_HEADER in call_args[0].content
         assert "[Source: intro.pdf]" in call_args[0].content
         assert "Python is a programming language." in call_args[0].content
         assert call_args[1].content == "What is Python?"
 
-    def test_no_system_message_without_context(self, mock_settings):
+    def test_system_message_without_context_has_base_prompt(self, mock_settings):
         with patch("app.agent.ChatOpenAI") as mock_llm_cls:
             mock_llm = MagicMock()
             mock_llm.invoke.return_value = AIMessage(content="plain answer")
@@ -106,8 +111,24 @@ class TestContextInjection:
         agent.invoke("hello")
 
         call_args = mock_llm.invoke.call_args[0][0]
-        assert len(call_args) == 1
-        assert call_args[0].content == "hello"
+        assert len(call_args) == 2
+        assert call_args[0].content == RAG_SYSTEM_PROMPT_BASE
+        assert RAG_SYSTEM_PROMPT_DOCS_HEADER not in call_args[0].content
+        assert call_args[1].content == "hello"
+
+    def test_system_message_without_context_instructs_refusal(self, mock_settings):
+        with patch("app.agent.ChatOpenAI") as mock_llm_cls:
+            mock_llm = MagicMock()
+            mock_llm.invoke.return_value = AIMessage(content="plain answer")
+            mock_llm_cls.return_value = mock_llm
+            agent = ProductionAgent()
+
+        agent.invoke("hello")
+
+        call_args = mock_llm.invoke.call_args[0][0]
+        system_content = call_args[0].content
+        assert "don't have sufficient context" in system_content
+        assert "Do not answer from general knowledge" in system_content
 
 
 # invoke return value
@@ -153,5 +174,6 @@ class TestFallbackWithRAG:
         assert result["model_used"] == "fallback"
         assert result["response"] == "fallback answer"
         call_args = fallback.invoke.call_args[0][0]
-        assert call_args[0].content.startswith(RAG_SYSTEM_PROMPT)
+        assert call_args[0].content.startswith(RAG_SYSTEM_PROMPT_BASE)
+        assert RAG_SYSTEM_PROMPT_DOCS_HEADER in call_args[0].content
         assert "[Source: intro.pdf]" in call_args[0].content
