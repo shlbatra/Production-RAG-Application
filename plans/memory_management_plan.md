@@ -32,30 +32,54 @@ Key files:
 
 ### 1. Thread-Based Conversation Store — `app/conversation_store.py` (new file)
 
-Store conversation history in Supabase (same Postgres instance as documents). Each message belongs to a `thread_id`.
+Store conversation history in Supabase Postgres — the same instance and connection pool already used by `DocumentStore` for the `documents` table. Each message belongs to a `thread_id`.
 
-**Schema** (new Supabase migration):
+**Schema** — `supabase/migrations/003_create_conversations.sql`:
+
+Follows the same patterns as `001_create_documents.sql` and `002_add_full_text_search.sql` — table + index + RLS.
 
 ```sql
 CREATE TABLE conversations (
-    id          BIGSERIAL PRIMARY KEY,
-    thread_id   TEXT NOT NULL,
-    role        TEXT NOT NULL CHECK (role IN ('human', 'ai', 'tool', 'system')),
-    content     TEXT NOT NULL,
-    tool_name   TEXT,           -- for tool messages
-    tool_call_id TEXT,          -- for tool messages
-    created_at  TIMESTAMPTZ DEFAULT NOW()
+    id           BIGSERIAL PRIMARY KEY,
+    thread_id    TEXT NOT NULL,
+    role         TEXT NOT NULL CHECK (role IN ('human', 'ai', 'tool', 'system')),
+    content      TEXT NOT NULL,
+    tool_name    TEXT,
+    tool_call_id TEXT,
+    created_at   TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX idx_conversations_thread ON conversations (thread_id, created_at);
+
+-- RLS: same pattern as documents table — service_role only
+ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Service role has full access"
+ON conversations FOR ALL
+USING (true) WITH CHECK (true);
 ```
 
 **ConversationStore class:**
 
+Reuses the `ThreadedConnectionPool` from `DocumentStore` — no new pool, no new connection string. `DocumentStore` already exposes `self._pool` and uses a `@contextmanager` `_conn()` helper; `ConversationStore` follows the same pattern.
+
 ```python
 class ConversationStore:
     def __init__(self, pool: ThreadedConnectionPool) -> None:
-        self._pool = pool
+        self._pool = pool  # shared with DocumentStore
+
+    @contextmanager
+    def _conn(self) -> Generator:
+        """Same pattern as DocumentStore._conn()."""
+        conn = self._pool.getconn()
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            self._pool.putconn(conn)
 
     def save_message(self, thread_id: str, role: str, content: str, ...) -> None:
         """Persist a single message."""
@@ -67,10 +91,17 @@ class ConversationStore:
         """Delete all messages in a thread."""
 ```
 
-Why Postgres over Redis for conversations:
+**Wiring in `main.py` lifespan** — `DocumentStore` already creates the pool. Pass it to `ConversationStore`:
+
+```python
+document_store = DocumentStore(settings)
+conversation_store = ConversationStore(pool=document_store._pool)
+```
+
+Why Supabase Postgres (not Redis) for conversations:
 - Conversations need durability — Redis TTL would silently drop mid-conversation history
-- Already have a Postgres connection pool via `DocumentStore`
-- Can share the same `ThreadedConnectionPool` instance (pass it in, don't create a new one)
+- Already have a Postgres connection pool via `DocumentStore` — zero new infra
+- Same Supabase project, same RLS policies, same migration workflow
 - Redis stays for response caching (short-lived, TTL-appropriate)
 
 ### 2. Update the API Contract — `app/models.py`
@@ -268,7 +299,7 @@ This means:
 | `app/agent.py` | Accept `history` param in `invoke()` |
 | `app/main.py` | Load/save conversation history, conditional caching |
 | `app/config.py` | Add memory settings |
-| `supabase/migrations/` | New migration for `conversations` table |
+| `supabase/migrations/003_create_conversations.sql` | **New** — `conversations` table + index + RLS |
 | `tests/test_memory.py` | **New** — tests for trimming logic |
 | `tests/test_conversation_store.py` | **New** — tests for persistence |
 | `tests/test_agent.py` | Add tests for multi-turn invocation |
