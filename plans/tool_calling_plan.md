@@ -1,8 +1,22 @@
 # Tool Calling Plan
 
+*Updated 2026-06-26 — reflects system prompt split (PR #55) and retrieval quality filtering (PR #57).*
+
 ## Goal
 
-Add tool calling to the RAG agent so the LLM can **decide when to search** rather than always retrieving context upfront. Today the graph is linear: `retrieve → process → (fallback) → (error)`. With tool calling, the LLM receives the user question first, decides if it needs documents, calls a `search_documents` tool, reads the results, and then answers — an "agentic RAG" pattern.
+Add tool calling to the RAG agent so the LLM can **decide when to search** rather than always retrieving context upfront. Today the graph is linear: `retrieve → process → (fallback) → (error)`. With tool calling, the LLM receives the user question first, decides if it needs documents, calls a `search_documents` tool, reads the results, and then answers. If the knowledge base has no relevant results, the LLM can fall back to a `web_search` tool before giving up — an "agentic RAG" pattern with web fallback.
+
+### Expected Flow
+
+```
+User question
+  → LLM decides: needs context? → search_documents tool
+    → Results found → LLM answers from documents
+    → NO_RESULTS / LOW_RELEVANCE → LLM tries web_search tool
+      → Web results found → LLM answers from web (cites URLs)
+      → Nothing found → LLM tells user it could not find the information
+  → LLM decides: general question → responds directly (no tools)
+```
 
 ## Why Tool Calling Over Always-Retrieve
 
@@ -11,6 +25,7 @@ Add tool calling to the RAG agent so the LLM can **decide when to search** rathe
 | Every query hits the vector DB, even "hi" or "what's 2+2" | LLM only searches when it actually needs context |
 | Single retrieval pass — can't refine the search | LLM can search multiple times with different queries |
 | Retrieval prompt is the raw user message | LLM can reformulate the query before searching |
+| No fallback when docs don't have the answer | LLM can fall back to web search if docs return nothing |
 | Lower latency per query (one round-trip) | Slightly higher latency when tools are used, but saves unnecessary retrievals |
 
 ## Current Architecture (What We're Changing)
@@ -19,16 +34,24 @@ Add tool calling to the RAG agent so the LLM can **decide when to search** rathe
 app/agent.py — ProductionAgent
 ├── AgentState (messages, error, retry_count, model_used, context, sources)
 ├── Graph: START → retrieve → process → [fallback | error | END]
-└── retrieve_context() always calls self.retriever.search()
+├── retrieve_context() always calls self.retriever.search()
+├── _build_messages() always injects system prompt (with or without docs)
+└── RAG_SYSTEM_PROMPT_BASE + RAG_SYSTEM_PROMPT_DOCS_HEADER (split prompt)
 ```
+
+Recent changes to be aware of:
+- **System prompt is always injected** — `_build_messages()` prepends `RAG_SYSTEM_PROMPT_BASE` to every request. When retrieval returns context, it appends `RAG_SYSTEM_PROMPT_DOCS_HEADER` + chunks. This helper and both prompt constants will be removed when moving to tool calling.
+- **Retrieval quality thresholds** — vector similarity threshold is 0.55 (not 0.7), BM25 has a 0.3 normalized score floor, and HybridRetriever has an RRF min-score filter (0.8/(k+1)). The `search_documents` tool wraps the retriever as-is, so these thresholds carry over automatically.
 
 The LLM (`ChatOpenAI`) is already from langchain-openai which supports OpenAI function/tool calling natively. LangGraph supports tool nodes out of the box.
 
 ## Design
 
-### 1. Define a LangChain Tool — `app/tools.py` (new file)
+### 1. Define Tools — `app/tools.py` (new file)
 
-Create a single `search_documents` tool using `@tool` from `langchain_core.tools`:
+Two tools: `search_documents` (knowledge base) and `web_search` (internet fallback).
+
+**a) `search_documents`** — wraps the existing retriever:
 
 ```python
 from langchain_core.tools import tool
@@ -49,9 +72,32 @@ def create_search_tool(retriever, top_k: int, threshold: float):
     return search_documents
 ```
 
-- Wraps the existing `RetrievalStrategy` — no changes to retrieval.py
+- Wraps the existing `RetrievalStrategy` — no changes to retrieval.py or document_store.py
 - Returns formatted text the LLM can reason over
-- `top_k` and `threshold` come from settings, same as today
+- `top_k` and `threshold` come from settings (currently top_k=5, threshold=0.55)
+- All retrieval quality filters (BM25 min_score=0.3, RRF min-score) apply automatically since the tool calls the same retriever
+
+**b) `web_search`** — Tavily-based internet fallback:
+
+```python
+from langchain_community.tools.tavily_search import TavilySearchResults
+
+def create_web_search_tool(max_results: int = 3):
+    return TavilySearchResults(
+        max_results=max_results,
+        name="web_search",
+        description=(
+            "Search the web for current information. "
+            "Use this ONLY when search_documents returns no relevant results "
+            "and the user's question requires factual information you don't have."
+        ),
+    )
+```
+
+- Tavily returns structured results (title, url, snippet) — no HTML parsing needed
+- `max_results=3` keeps token usage and latency low
+- The tool description guides the LLM to prefer docs first, web second
+- Disabled by default — opt-in via `WEB_SEARCH_ENABLED=true` + `TAVILY_API_KEY`
 
 ### 2. Modify the Agent Graph — `app/agent.py`
 
@@ -70,12 +116,19 @@ Key changes to `ProductionAgent`:
 ```python
 from langgraph.prebuilt import ToolNode
 
-tools = [create_search_tool(retriever, settings.rag_top_k, settings.rag_similarity_threshold)]
+tools = []
+if self.rag_enabled:
+    tools.append(create_search_tool(retriever, settings.rag_top_k, settings.rag_similarity_threshold))  # threshold=0.55
+if settings.web_search_enabled:
+    tools.append(create_web_search_tool(max_results=settings.web_search_max_results))
+
 self.primary_llm = ChatOpenAI(...).bind_tools(tools)
 self.fallback_llm = ChatOpenAI(...).bind_tools(tools)
 ```
 
-**b) New `agent_node`** — replaces both `retrieve_context` and `process_message`:
+No graph structure changes needed for web search — the same `agent → should_continue? → tools → agent` loop handles both tools.
+
+**b) New `agent_node`** — replaces `retrieve_context`, `_build_messages`, and `process_message`:
 ```python
 def agent_node(state: AgentState) -> dict:
     messages = list(state["messages"])
@@ -83,6 +136,8 @@ def agent_node(state: AgentState) -> dict:
     response = self.primary_llm.invoke(messages)
     return {"messages": [response], "model_used": "primary"}
 ```
+
+This eliminates `_build_messages()`, `RAG_SYSTEM_PROMPT_BASE`, and `RAG_SYSTEM_PROMPT_DOCS_HEADER` — the tool-aware `SYSTEM_PROMPT` replaces all three.
 
 **c) Routing function** — checks if the LLM wants to call a tool:
 ```python
@@ -123,15 +178,19 @@ class AgentState(TypedDict):
 
 ### 4. Extract Sources from Tool Calls — `app/agent.py`
 
-After the graph runs, parse the message history to find any `search_documents` calls and extract source info for the API response:
+After the graph runs, parse the message history to find tool calls and extract source info for the API response. Distinguish document vs web sources so the client knows the provenance:
 
 ```python
 def _extract_sources(self, messages: list[BaseMessage]) -> list[dict]:
     sources = []
     for msg in messages:
-        if isinstance(msg, ToolMessage) and msg.name == "search_documents":
-            # parse the formatted text to extract source names
-            ...
+        if isinstance(msg, ToolMessage):
+            if msg.name == "search_documents":
+                # parse the formatted text to extract source names
+                sources.append({"type": "document", ...})
+            elif msg.name == "web_search":
+                # parse web results (Tavily returns title + url)
+                sources.append({"type": "web", ...})
     return sources
 ```
 
@@ -161,11 +220,11 @@ The LLM's decision to escalate (docs → web → give up) is probabilistic. Thre
 if not results:
     return "NO_RESULTS: No relevant documents found in the knowledge base."
 
-if all(r["similarity"] < threshold for r in results):
+if all(r["similarity"] < 0.75 for r in results):
     return "LOW_RELEVANCE: Documents were found but none are highly relevant.\n\n" + formatted
 ```
 
-The LLM sees `NO_RESULTS` or `LOW_RELEVANCE` as a clear signal rather than guessing from content.
+Note: the vector threshold (0.55) and BM25 floor (0.3) already filter out weak results before they reach the tool. The `LOW_RELEVANCE` check here is a higher bar — it flags results that passed the retrieval filters but are still borderline. The LLM sees `NO_RESULTS` or `LOW_RELEVANCE` as a clear signal rather than guessing from content.
 
 **Layer 2 — Enforce tool ordering in `should_continue`.** Don't rely solely on the prompt — programmatically block `web_search` if `search_documents` hasn't been called yet:
 
@@ -210,33 +269,48 @@ SYSTEM_PROMPT = (
 
 ### 6. Update System Prompt
 
-The current `RAG_SYSTEM_PROMPT` assumes context is always injected. Replace with a tool-aware prompt:
+The current split prompt (`RAG_SYSTEM_PROMPT_BASE` + `RAG_SYSTEM_PROMPT_DOCS_HEADER`) always injects context via `_build_messages()`. With tool calling, the LLM decides when to search, so the prompt changes from "here are your documents" to "here are your tools":
 
 ```python
 SYSTEM_PROMPT = (
-    "You are a helpful assistant with access to a knowledge base of documents. "
-    "When the user asks a question that might be answered by the knowledge base, "
-    "use the search_documents tool to find relevant information before answering. "
-    "If the tool returns no relevant results, say you don't have sufficient context. "
-    "For general conversation or questions not related to the knowledge base, "
-    "respond directly without searching."
+    "You are a helpful assistant with access to a knowledge base and the web.\n\n"
+    "STRICT RULES:\n"
+    "1. You MUST call search_documents BEFORE web_search. Never skip this step.\n"
+    "2. Only call web_search if search_documents returned NO_RESULTS or LOW_RELEVANCE.\n"
+    "3. If both tools return nothing useful, tell the user you could not find the information.\n"
+    "4. For general conversation (greetings, math, opinions), respond directly — no tools.\n"
+    "5. When using web results, always cite the source URLs.\n"
 )
 ```
 
+This replaces `RAG_SYSTEM_PROMPT_BASE`, `RAG_SYSTEM_PROMPT_DOCS_HEADER`, and `_build_messages()` — all three are deleted.
+
 ### 7. Config — `app/config.py`
 
-Add one setting:
-
 ```python
-max_tool_calls: int = 3  # max search rounds per request
+max_tool_calls: int = 3  # max tool-calling rounds per request
+
+# Web search
+web_search_enabled: bool = False
+tavily_api_key: str = ""
+web_search_max_results: int = 3
 ```
 
-### 8. No Changes Needed
+Web search is disabled by default — opt-in via env var `WEB_SEARCH_ENABLED=true` + `TAVILY_API_KEY`.
 
-- **`app/retrieval.py`** — untouched, tool wraps the existing retriever
+### 8. Unchanged / Minor Changes
+
+- **`app/retrieval.py`** — untouched, tool wraps the existing retriever (RRF min-score filter and threshold carry over)
+- **`app/document_store.py`** — untouched (BM25 min_score=0.3 floor carries over)
 - **`app/main.py`** — untouched, `agent.invoke()` signature stays the same
-- **`app/models.py`** — `ChatResponse.sources` already optional, works as-is
-- **`app/document_store.py`** — untouched
+- **`app/models.py`** — add `type` field to `SourceReference` so client can distinguish `"document"` vs `"web"` sources:
+  ```python
+  class SourceReference(BaseModel):
+      source: str
+      similarity: float
+      chunk_preview: str
+      type: str = "document"  # "document" or "web"
+  ```
 - **Cache / security / monitoring** — untouched
 
 ### 9. Tests — `tests/test_agent.py`
@@ -246,9 +320,22 @@ Update existing agent tests:
 - Test that a general question ("hi") does NOT trigger a tool call
 - Test max tool call guard (mock LLM to always request tools, verify it caps out)
 - Test fallback still works when primary errors during a tool-calling loop
-- Test source extraction from tool messages
+- Test source extraction from tool messages distinguishes `"document"` vs `"web"` types
+- Test that LLM calls `web_search` after `search_documents` returns no results
+- Test that LLM does NOT call `web_search` when docs provide a good answer
+- Test `web_search_enabled=False` means the web tool is not available
+- Test tool ordering guard blocks `web_search` before `search_documents`
+- Test max tool calls guard works with two tools
 
-### 10. Non-RAG Mode
+### 10. Dependency
+
+Add `tavily-py` to `pyproject.toml` (integrates with langchain via `langchain-community`):
+
+```toml
+"tavily-py>=0.5.0",
+```
+
+### 11. Non-RAG Mode
 
 When no retriever is configured (`retriever=None`), don't bind any tools — the graph becomes a straight `agent → END` with no tool node. This preserves the current behavior when RAG is disabled.
 
@@ -256,149 +343,19 @@ When no retriever is configured (`retriever=None`), don't bind any tools — the
 
 | File | Change |
 |---|---|
-| `app/tools.py` | **New** — `create_search_tool()` |
-| `app/agent.py` | Rewrite graph to tool-calling loop, update state, extract sources |
-| `app/config.py` | Add `max_tool_calls` setting |
-| `tests/test_agent.py` | Update/add tests for tool calling behavior |
+| `app/tools.py` | **New** — `create_search_tool()`, `create_web_search_tool()` |
+| `app/agent.py` | Rewrite graph to tool-calling loop, update state, extract sources (doc + web) |
+| `app/config.py` | Add `max_tool_calls`, `web_search_enabled`, `tavily_api_key`, `web_search_max_results` |
+| `app/models.py` | Add `type` field to `SourceReference` |
+| `pyproject.toml` | Add `tavily-py` dependency |
+| `tests/test_agent.py` | Update/add tests for tool calling and web search fallback |
 
 ## Implementation Order
 
-1. Create `app/tools.py` with the search tool
-2. Add `max_tool_calls` to config
-3. Rewrite `app/agent.py` — new graph, state, source extraction
-4. Update tests
-5. Manual test via `/chat` endpoint
-
----
-
-## Version 2: Web Search Fallback
-
-### Goal
-
-Extend the tool-calling agent so that when `search_documents` returns no relevant results (or insufficient results), the LLM can fall back to a `web_search` tool to find an answer from the internet. The LLM makes the judgement call — if the knowledge base didn't help, it tries the web before giving up.
-
-### Flow
-
-```
-User question
-  → LLM decides: use search_documents
-  → Tool returns "No relevant documents found." (or thin results)
-  → LLM judges: knowledge base wasn't enough, try web_search
-  → Tool returns web snippets
-  → LLM synthesizes answer from web results
-```
-
-The LLM naturally handles this via the existing tool-calling loop — no new graph nodes needed. It's just a second tool available in the same `ToolNode`.
-
-### 1. Add `web_search` Tool — `app/tools.py`
-
-Use the Tavily search API (purpose-built for LLM web search, returns clean snippets):
-
-```python
-from langchain_community.tools.tavily_search import TavilySearchResults
-
-def create_web_search_tool(max_results: int = 3):
-    return TavilySearchResults(
-        max_results=max_results,
-        name="web_search",
-        description=(
-            "Search the web for current information. "
-            "Use this ONLY when search_documents returns no relevant results "
-            "and the user's question requires factual information you don't have."
-        ),
-    )
-```
-
-- Tavily returns structured results (title, url, snippet) — no HTML parsing needed
-- `max_results=3` keeps token usage and latency low
-- The tool description guides the LLM to prefer docs first, web second
-
-### 2. Register the Tool — `app/agent.py`
-
-Add `web_search` to the tools list when web search is enabled:
-
-```python
-tools = []
-if self.rag_enabled:
-    tools.append(create_search_tool(retriever, settings.rag_top_k, settings.rag_similarity_threshold))
-if settings.web_search_enabled:
-    tools.append(create_web_search_tool(max_results=settings.web_search_max_results))
-
-self.primary_llm = ChatOpenAI(...).bind_tools(tools)
-self.fallback_llm = ChatOpenAI(...).bind_tools(tools)
-tool_node = ToolNode(tools)
-```
-
-No graph structure changes — the same `agent → should_continue? → tools → agent` loop handles both tools.
-
-### 3. System Prompt & Guardrails
-
-The system prompt and all three guardrail layers (explicit tool output signals, programmatic tool ordering in `should_continue`, strict prompt language) are defined in **Section 5a** above. Version 2 uses the same guardrail system — no duplication needed. The `should_continue` ordering guard and `NO_RESULTS`/`LOW_RELEVANCE` signals apply to both `search_documents` and `web_search`.
-
-### 4. Config — `app/config.py`
-
-```python
-# Web search
-web_search_enabled: bool = False
-tavily_api_key: str = ""
-web_search_max_results: int = 3
-```
-
-Disabled by default — opt-in via env var `WEB_SEARCH_ENABLED=true` + `TAVILY_API_KEY`.
-
-### 5. Track Source Type in Response — `app/agent.py`
-
-Extend `_extract_sources` to distinguish document vs web sources:
-
-```python
-def _extract_sources(self, messages: list[BaseMessage]) -> list[dict]:
-    sources = []
-    for msg in messages:
-        if isinstance(msg, ToolMessage):
-            if msg.name == "search_documents":
-                # parse doc sources
-                sources.append({"type": "document", ...})
-            elif msg.name == "web_search":
-                # parse web results (Tavily returns title + url)
-                sources.append({"type": "web", ...})
-    return sources
-```
-
-### 6. Update `SourceReference` Model — `app/models.py`
-
-Add an optional `type` field so the client can distinguish doc vs web results:
-
-```python
-class SourceReference(BaseModel):
-    source: str
-    similarity: float
-    chunk_preview: str
-    type: str = "document"  # "document" or "web"
-```
-
-### 7. Dependency
-
-Add `tavily-py` to `pyproject.toml` (already integrates with langchain via `langchain-community`):
-
-```toml
-"tavily-py>=0.5.0",
-```
-
-### 8. Tests
-
-- Test that LLM calls `web_search` after `search_documents` returns no results
-- Test that LLM does NOT call `web_search` when docs provide a good answer
-- Test `web_search_enabled=False` means the tool is not available
-- Test source extraction distinguishes `"document"` vs `"web"` types
-- Test max tool calls guard still works with two tools
-
-### Version 2 File Changes Summary
-
-| File | Change |
-|---|---|
-| `app/tools.py` | Add `create_web_search_tool()` |
-| `app/agent.py` | Register web tool, update prompt, extend source extraction |
-| `app/config.py` | Add `web_search_enabled`, `tavily_api_key`, `web_search_max_results` |
-| `app/models.py` | Add `type` field to `SourceReference` |
-| `pyproject.toml` | Add `tavily-py` dependency |
-| `tests/test_agent.py` | Add web search fallback tests |
+1. Create `app/tools.py` with `search_documents` and `web_search` tools
+2. Add config settings (`max_tool_calls`, web search)
+3. Add `tavily-py` dependency to `pyproject.toml`
+4. Rewrite `app/agent.py` — new graph, state, source extraction, guardrails
+5. Update `app/models.py` — add source type field
+6. Update tests
+7. Manual test via `/chat` endpoint (docs-only, web fallback, general conversation)
