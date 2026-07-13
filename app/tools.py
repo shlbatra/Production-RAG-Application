@@ -15,9 +15,7 @@ from app.retrieval import RetrievalStrategy
 logger = logging.getLogger(__name__)
 
 
-def create_search_tool(
-    retriever: RetrievalStrategy, top_k: int, threshold: float
-):
+def create_search_tool(retriever: RetrievalStrategy, top_k: int, threshold: float):
     """Build a `search_documents` tool that wraps the given retriever.
 
     The tool exposes the existing `RetrievalStrategy` to the LLM as a callable
@@ -34,9 +32,7 @@ def create_search_tool(
         prefixed with its source, or a message when nothing relevant is found.
         """
         results = retriever.search(query=query, top_k=top_k, threshold=threshold)
-        logger.info(
-            "search_documents(query=%r) -> %d result(s)", query, len(results)
-        )
+        logger.info("search_documents(query=%r) -> %d result(s)", query, len(results))
         if not results:
             return "No relevant documents found."
 
