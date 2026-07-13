@@ -15,6 +15,10 @@ from app.retrieval import RetrievalStrategy
 logger = logging.getLogger(__name__)
 
 
+# create_search_tool is an adapter. On one side is your retriever (a normal
+# Python object with config). On the other side is the LLM (which can only pass
+# a query string and can only read text back). The factory + @tool + string
+# formatting together translate between those two worlds.
 def create_search_tool(retriever: RetrievalStrategy, top_k: int, threshold: float):
     """Build a `search_documents` tool that wraps the given retriever.
 
