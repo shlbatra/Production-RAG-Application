@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     rag_top_k: int = 5
     rag_similarity_threshold: float = 0.55
     max_upload_size_mb: int = 10
+    max_tool_calls: int = 3  # max search rounds per request (tool-calling guard)
 
     # Redis
     redis_url: str = ""  # Local: "redis://localhost:6379/0", Upstash: "rediss://default:xxx@xxx.upstash.io:6379"
