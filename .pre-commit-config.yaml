@@ -1,0 +1,31 @@
+# Pre-commit hooks: lint, format, and type-check before every commit.
+# Hooks run via `uv run` so tool versions come from the uv lockfile — the same
+# source of truth as CI (.github/workflows/ci.yml). Install once with:
+#   uv run pre-commit install
+#
+# ruff auto-fixes lint issues and reformats in place; if it changes a file the
+# commit is aborted so you can review and re-stage the fixes.
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check (lint + autofix)
+        entry: uv run ruff check --fix
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+
+      - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+
+      - id: mypy
+        name: mypy (type check app/)
+        entry: uv run mypy app/
+        language: system
+        types_or: [python, pyi]
+        pass_filenames: false
+        require_serial: true
