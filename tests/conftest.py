@@ -66,6 +66,7 @@ def mock_settings():
         s.fallback_model = "gpt-4.1-nano"
         s.openai_api_key = "test-key"
         s.max_retries = 3
+        s.max_tool_calls = 3
         s.rag_top_k = 5
         s.rag_similarity_threshold = 0.55
         mock.return_value = s

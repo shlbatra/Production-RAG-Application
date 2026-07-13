@@ -19,7 +19,9 @@ class SourceReference(BaseModel):
     """A retrieved document chunk used to inform the response."""
 
     source: str
-    similarity: float
+    # Optional: tool-calling mode recovers sources from the search tool's text
+    # output, which carries the source name and chunk but not a similarity score.
+    similarity: float | None = None
     chunk_preview: str
 
 
