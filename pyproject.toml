@@ -37,4 +37,5 @@ dev = [
     "pytest>=9.0.2",
     "ruff>=0.15.17",
     "fakeredis>=2.0.0",
+    "pre-commit>=4.6.0",
 ]
